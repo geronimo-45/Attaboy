@@ -5,21 +5,28 @@
   <meta name="viewport" content="width=device-width,initial-scale=1" />
   <title>RockClan Records</title>
   <style>
-    body { background: #0b0710; color: #fff; font-family: 'Orbitron', sans-serif; padding: 20px; }
-    h1 { color: #ff6a00; }
-    table { width: 100%; border-collapse: collapse; margin-top: 10px; }
-    th, td { padding: 8px; border-bottom: 1px solid rgba(255,255,255,0.1); text-align: left; }
-    .Stone { color: #777; }
-    .Bronze { color: #cd7f32; }
-    .Silver { color: #c0c0c0; }
-    .Gold { color: #ffd700; }
-    .Diamond { color: #00bfff; }
-    .Legend { color: #ff4500; }
+    body { background:#0b0710; color:#fff; font-family:'Orbitron',sans-serif; margin:0; }
+    header { background:linear-gradient(90deg,#ff6a00,#ff3300); padding:20px; text-align:center; font-size:2em; font-weight:bold; }
+    nav { display:flex; justify-content:center; background:#111; border-bottom:1px solid #333; }
+    nav button { background:none; border:none; color:#ccc; font-size:1.1em; padding:15px 25px; cursor:pointer; transition:0.3s; }
+    nav button:hover, nav button.active { color:#ff6a00; }
+    section { display:none; padding:20px; }
+    section.active { display:block; }
+    table { width:100%; border-collapse:collapse; margin-top:10px; }
+    th, td { padding:8px; border-bottom:1px solid rgba(255,255,255,0.1); text-align:left; }
+    .Stone { color:#777; } .Bronze { color:#cd7f32; } .Silver { color:#c0c0c0; }
+    .Gold { color:#ffd700; } .Diamond { color:#00bfff; } .Legend { color:#ff4500; }
   </style>
 </head>
 <body>
-  <h1>RockClan Records</h1>
-  <section>
+  <header>🔥 RockClan Records 🔥</header>
+  <nav>
+    <button class="active" onclick="showSection('intro')">클랜원 소개</button>
+    <button onclick="showSection('records')">기록실</button>
+    <button onclick="showSection('elo')">ELO 시스템 설명</button>
+  </nav>
+
+  <section id="intro" class="active">
     <h2>클랜원 소개</h2>
     <table>
       <thead><tr><th>ID</th><th>종족</th><th>티어</th></tr></thead>
@@ -27,12 +34,75 @@
         <tr><td>Attaboy</td><td>Zerg</td><td class="Diamond">Diamond</td></tr>
         <tr><td>Shinny</td><td>Protoss</td><td class="Legend">Legend</td></tr>
         <tr><td>MGZG</td><td>Zerg</td><td class="Bronze">Bronze</td></tr>
+        <tr><td>Rupark</td><td>Zerg</td><td class="Diamond">Diamond</td></tr>
+        <tr><td>Gdragon</td><td>Random</td><td class="Diamond">Diamond</td></tr>
+        <tr><td>Veeny</td><td>Terran</td><td class="Gold">Gold</td></tr>
+        <tr><td>Miny</td><td>Protoss</td><td class="Silver">Silver</td></tr>
+        <tr><td>Friend</td><td>Protoss</td><td class="Silver">Silver</td></tr>
+        <tr><td>Zeze</td><td>Protoss</td><td class="Gold">Gold</td></tr>
+        <tr><td>Skidashi</td><td>Zerg</td><td class="Gold">Gold</td></tr>
+        <tr><td>Macho</td><td>Protoss</td><td class="Diamond">Diamond</td></tr>
       </tbody>
     </table>
   </section>
-  <section>
-    <h2>ELO 시스템 설명</h2>
-    <p>티어 간 경기 결과에 따라 점수가 차등 부여됩니다. (Stone→Bronze→Silver→Gold→Diamond→Legend)</p>
+
+  <section id="records">
+    <h2>기록실</h2>
+    <h3>10월 1일 경기</h3>
+    <pre>[팀 구성]
+Team#1: Veeny Gdragon Skidashi Miny
+Team#2: Friend Zeze Rocky Rupark
+승리팀: Team#2 (3:4)
+
+[경기 결과]
+1경기 [투혼] Veeny vs Friend(W) 0:1
+2경기 [투혼] Gdragon vs Zeze(W) 0:2
+3경기 [투혼] Skidashi(W) vs Rocky 1:2
+4경기 [투혼] Miny vs Rupark(W) 1:3
+5경기 [4:4헌터] Team1(W) vs Team2 2:3
+6경기 [3:3생컨] Team1(W) vs Team2 3:3
+7경기 [에이스] Miny vs Zeze(W) 3:4</pre>
+
+    <h3>10월 2일 경기</h3>
+    <pre>[팀 구성]
+Team#1: Hani Macho dong9 Rupark IN
+Team#2: Skidashi Strive Attaboy Winter Templar
+승리팀: Team#1 (5:3)
+
+[경기 결과]
+1set ▶ 투혼/ Hani(W) vs Skidashi 1:0
+2set ▶ 투혼/ Macho vs Strive(W) 1:1
+3set ▶ 투혼/ dong9(W) vs Attaboy 2:1
+4set ▶ 투혼/ Rupark vs Winter(W) 2:2
+5set ▶ 투혼/ IN vs Templar(W) 2:3
+6set ▶ 4:4헌터/ Team1(W) vs Team2 3:3
+7set ▶ 3:3생컨/ Team1(W) vs Team2 4:3
+8set ▶ 에이스/ Rupark(W) vs Skidashi 5:3</pre>
   </section>
+
+  <section id="elo">
+    <h2>ELO 시스템 설명</h2>
+    <table>
+      <thead><tr><th>티어</th><th>가중치</th><th>하위티어 승리</th><th>동급 승리</th><th>상위티어 승리</th></tr></thead>
+      <tbody>
+        <tr><td>Stone</td><td>1.0</td><td>+10</td><td>+20</td><td>+30</td></tr>
+        <tr><td>Bronze</td><td>1.1</td><td>+8</td><td>+20</td><td>+32</td></tr>
+        <tr><td>Silver</td><td>1.2</td><td>+6</td><td>+20</td><td>+34</td></tr>
+        <tr><td>Gold</td><td>1.4</td><td>+4</td><td>+20</td><td>+36</td></tr>
+        <tr><td>Diamond</td><td>1.6</td><td>+3</td><td>+20</td><td>+38</td></tr>
+        <tr><td>Legend</td><td>2.0</td><td>+2</td><td>+20</td><td>+40</td></tr>
+      </tbody>
+    </table>
+    <p>※ 상위 티어 상대로 승리할수록 점수 상승폭이 크며, 하위 티어에게 패배 시 손실이 큽니다.</p>
+  </section>
+
+  <script>
+    function showSection(id) {
+      document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
+      document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
+      document.getElementById(id).classList.add('active');
+      event.target.classList.add('active');
+    }
+  </script>
 </body>
 </html>
