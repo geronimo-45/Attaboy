@@ -3,106 +3,172 @@
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width,initial-scale=1" />
-  <title>RockClan Records</title>
+  <title>RockClan Records — 공식 기록실</title>
+  <link href="https://fonts.googleapis.com/css2?family=Orbitron:wght@400;700&display=swap" rel="stylesheet">
   <style>
-    body { background:#0b0710; color:#fff; font-family:'Orbitron',sans-serif; margin:0; }
-    header { background:linear-gradient(90deg,#ff6a00,#ff3300); padding:20px; text-align:center; font-size:2em; font-weight:bold; }
-    nav { display:flex; justify-content:center; background:#111; border-bottom:1px solid #333; }
-    nav button { background:none; border:none; color:#ccc; font-size:1.1em; padding:15px 25px; cursor:pointer; transition:0.3s; }
-    nav button:hover, nav button.active { color:#ff6a00; }
-    section { display:none; padding:20px; }
-    section.active { display:block; }
-    table { width:100%; border-collapse:collapse; margin-top:10px; }
-    th, td { padding:8px; border-bottom:1px solid rgba(255,255,255,0.1); text-align:left; }
-    .Stone { color:#777; } .Bronze { color:#cd7f32; } .Silver { color:#c0c0c0; }
-    .Gold { color:#ffd700; } .Diamond { color:#00bfff; } .Legend { color:#ff4500; }
+    :root {
+      --bg1: #0b0710;
+      --bg2: #14050a;
+      --accent: #ff6a00;
+      --accent-2: #ff3b3b;
+      --muted: #a7a0a8;
+      --card: rgba(255,255,255,0.03);
+      --glass: rgba(255,255,255,0.04);
+    }
+    html,body {height:100%;}
+    body {
+      margin:0;
+      font-family: 'Orbitron', 'Noto Sans KR', sans-serif;
+      background: linear-gradient(180deg,var(--bg1), var(--bg2));
+      color:#eee;
+      padding:0;
+    }
+    header {
+      display:flex;align-items:center;gap:18px;padding:18px 24px;background:linear-gradient(90deg, rgba(255,255,255,0.02), rgba(0,0,0,0.06));box-shadow:0 6px 30px rgba(0,0,0,0.6);
+      position:sticky;top:0;z-index:10;
+    }
+    .logo {width:72px;height:72px;display:flex;align-items:center;justify-content:center;background:#111;border-radius:8px;overflow:hidden}
+    .logo img{width:100%;height:100%;object-fit:contain}
+    h1{margin:0;font-size:24px;color:var(--accent)}
+
+    nav {margin-left:auto;display:flex;gap:18px;}
+    nav button {
+      background:none;border:none;color:#eee;font-size:14px;cursor:pointer;padding:8px 14px;border-radius:6px;transition:0.3s;
+    }
+    nav button:hover, nav button.active {background:var(--accent);color:#fff;}
+
+    main{padding:24px;max-width:1100px;margin:0 auto;}
+    section{display:none;animation:fadein 0.4s ease;}
+    section.active{display:block;}
+
+    @keyframes fadein{from{opacity:0;transform:translateY(10px);}to{opacity:1;transform:none;}}
+
+    .card{background:var(--card);padding:16px;border-radius:10px;margin-bottom:16px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.02)}
+    table{width:100%;border-collapse:collapse;font-size:14px}
+    th,td{padding:8px 10px;text-align:left;border-bottom:1px solid rgba(255,255,255,0.05)}
+    th{font-size:12px;color:var(--muted);text-transform:uppercase}
+
+    .race-pill{display:inline-block;padding:4px 8px;border-radius:999px;font-size:12px;background:rgba(255,255,255,0.05)}
+    .wins{color:#9be88a}
+    .loss{color:#ff7b7b}
+
+    .tier-Stone{color:#777}
+    .tier-Bronze{color:#cd7f32}
+    .tier-Silver{color:#c0c0c0}
+    .tier-Gold{color:#ffd700}
+    .tier-Diamond{color:#33cfff}
+    .tier-Legend{color:#ff3b3b}
+
   </style>
 </head>
 <body>
-  <header>🔥 RockClan Records 🔥</header>
-  <nav>
-    <button class="active" onclick="showSection('intro')">클랜원 소개</button>
-    <button onclick="showSection('records')">기록실</button>
-    <button onclick="showSection('elo')">ELO 시스템 설명</button>
-  </nav>
+  <header>
+    <div class="logo"><img src="img/KakaoTalk_20250830_195520933.png" alt="RockClan logo"></div>
+    <div>
+      <h1>RockClan Records</h1>
+      <div style="font-size:12px;color:var(--muted)">클랜 공식 기록실</div>
+    </div>
+    <nav>
+      <button class="tab-btn active" data-tab="intro">클랜원 소개</button>
+      <button class="tab-btn" data-tab="records">기록실</button>
+      <button class="tab-btn" data-tab="elo">ELO 시스템 설명</button>
+    </nav>
+  </header>
 
-  <section id="intro" class="active">
-    <h2>클랜원 소개</h2>
-    <table>
-      <thead><tr><th>ID</th><th>종족</th><th>티어</th></tr></thead>
-      <tbody>
-        <tr><td>Attaboy</td><td>Zerg</td><td class="Diamond">Diamond</td></tr>
-        <tr><td>Shinny</td><td>Protoss</td><td class="Legend">Legend</td></tr>
-        <tr><td>MGZG</td><td>Zerg</td><td class="Bronze">Bronze</td></tr>
-        <tr><td>Rupark</td><td>Zerg</td><td class="Diamond">Diamond</td></tr>
-        <tr><td>Gdragon</td><td>Random</td><td class="Diamond">Diamond</td></tr>
-        <tr><td>Veeny</td><td>Terran</td><td class="Gold">Gold</td></tr>
-        <tr><td>Miny</td><td>Protoss</td><td class="Silver">Silver</td></tr>
-        <tr><td>Friend</td><td>Protoss</td><td class="Silver">Silver</td></tr>
-        <tr><td>Zeze</td><td>Protoss</td><td class="Gold">Gold</td></tr>
-        <tr><td>Skidashi</td><td>Zerg</td><td class="Gold">Gold</td></tr>
-        <tr><td>Macho</td><td>Protoss</td><td class="Diamond">Diamond</td></tr>
-      </tbody>
-    </table>
-  </section>
+  <main>
+    <section id="intro" class="active">
+      <div class="card">
+        <h3 style="color:var(--accent)">클랜원 소개</h3>
+        <p style="color:var(--muted)">RockClan의 모든 소속 클랜원 목록과 티어 정보입니다.</p>
+        <table>
+          <thead><tr><th>ID</th><th>종족</th><th>티어</th></tr></thead>
+          <tbody id="member-list"></tbody>
+        </table>
+      </div>
+    </section>
 
-  <section id="records">
-    <h2>기록실</h2>
-    <h3>10월 1일 경기</h3>
-    <pre>[팀 구성]
-Team#1: Veeny Gdragon Skidashi Miny
-Team#2: Friend Zeze Rocky Rupark
-승리팀: Team#2 (3:4)
+    <section id="records">
+      <div class="card">
+        <h3 style="color:var(--accent)">기록실</h3>
+        <p style="color:var(--muted)">개인 및 팀 경기 결과, 승률과 ELO 점수를 기반으로 한 순위를 제공합니다.</p>
+        <table>
+          <thead><tr><th>선수</th><th>종족</th><th>티어</th><th>경기</th><th>승</th><th>패</th><th>승률</th><th>ELO</th><th>Rank</th></tr></thead>
+          <tbody id="records-body"></tbody>
+        </table>
+      </div>
+    </section>
 
-[경기 결과]
-1경기 [투혼] Veeny vs Friend(W) 0:1
-2경기 [투혼] Gdragon vs Zeze(W) 0:2
-3경기 [투혼] Skidashi(W) vs Rocky 1:2
-4경기 [투혼] Miny vs Rupark(W) 1:3
-5경기 [4:4헌터] Team1(W) vs Team2 2:3
-6경기 [3:3생컨] Team1(W) vs Team2 3:3
-7경기 [에이스] Miny vs Zeze(W) 3:4</pre>
-
-    <h3>10월 2일 경기</h3>
-    <pre>[팀 구성]
-Team#1: Hani Macho dong9 Rupark IN
-Team#2: Skidashi Strive Attaboy Winter Templar
-승리팀: Team#1 (5:3)
-
-[경기 결과]
-1set ▶ 투혼/ Hani(W) vs Skidashi 1:0
-2set ▶ 투혼/ Macho vs Strive(W) 1:1
-3set ▶ 투혼/ dong9(W) vs Attaboy 2:1
-4set ▶ 투혼/ Rupark vs Winter(W) 2:2
-5set ▶ 투혼/ IN vs Templar(W) 2:3
-6set ▶ 4:4헌터/ Team1(W) vs Team2 3:3
-7set ▶ 3:3생컨/ Team1(W) vs Team2 4:3
-8set ▶ 에이스/ Rupark(W) vs Skidashi 5:3</pre>
-  </section>
-
-  <section id="elo">
-    <h2>ELO 시스템 설명</h2>
-    <table>
-      <thead><tr><th>티어</th><th>가중치</th><th>하위티어 승리</th><th>동급 승리</th><th>상위티어 승리</th></tr></thead>
-      <tbody>
-        <tr><td>Stone</td><td>1.0</td><td>+10</td><td>+20</td><td>+30</td></tr>
-        <tr><td>Bronze</td><td>1.1</td><td>+8</td><td>+20</td><td>+32</td></tr>
-        <tr><td>Silver</td><td>1.2</td><td>+6</td><td>+20</td><td>+34</td></tr>
-        <tr><td>Gold</td><td>1.4</td><td>+4</td><td>+20</td><td>+36</td></tr>
-        <tr><td>Diamond</td><td>1.6</td><td>+3</td><td>+20</td><td>+38</td></tr>
-        <tr><td>Legend</td><td>2.0</td><td>+2</td><td>+20</td><td>+40</td></tr>
-      </tbody>
-    </table>
-    <p>※ 상위 티어 상대로 승리할수록 점수 상승폭이 크며, 하위 티어에게 패배 시 손실이 큽니다.</p>
-  </section>
+    <section id="elo">
+      <div class="card">
+        <h3 style="color:var(--accent)">ELO 시스템 설명</h3>
+        <p style="line-height:1.6">
+          RockClan의 ELO 시스템은 티어 간의 상대적 실력을 반영하여 경기 결과마다 점수를 가감합니다.<br>
+          기본 규칙은 다음과 같습니다:
+        </p>
+        <table>
+          <thead><tr><th>상대 티어 차이</th><th>승리 시 점수</th><th>패배 시 점수</th></tr></thead>
+          <tbody>
+            <tr><td>자신보다 낮은 티어</td><td>+5</td><td>-20</td></tr>
+            <tr><td>동급 티어</td><td>+15</td><td>-15</td></tr>
+            <tr><td>한 단계 높은 티어</td><td>+25</td><td>-10</td></tr>
+            <tr><td>두 단계 이상 높은 티어</td><td>+35</td><td>-5</td></tr>
+          </tbody>
+        </table>
+        <p style="margin-top:10px;color:var(--muted)">ELO 점수는 누적 경기의 결과를 통해 실시간으로 반영되며, 시즌별 랭킹 산정 기준으로 활용됩니다.</p>
+      </div>
+    </section>
+  </main>
 
   <script>
-    function showSection(id) {
-      document.querySelectorAll('section').forEach(s=>s.classList.remove('active'));
-      document.querySelectorAll('nav button').forEach(b=>b.classList.remove('active'));
-      document.getElementById(id).classList.add('active');
-      event.target.classList.add('active');
-    }
+    const tiers = ["Stone","Bronze","Silver","Gold","Diamond","Legend"];
+    const players = [
+      { id: "Chan", race: "Protoss", tier: "Silver" },
+      { id: "Winter", race: "Protoss", tier: "Gold" },
+      { id: "dong9", race: "Terran", tier: "Diamond" },
+      { id: "MGZG", race: "Zerg", tier: "Bronze" },
+      { id: "Gdragon", race: "Random", tier: "Diamond" },
+      { id: "IN", race: "Terran", tier: "Gold" },
+      { id: "Shinny", race: "Protoss", tier: "Legend" },
+      { id: "yolo", race: "Protoss", tier: "Diamond" },
+      { id: "Strive", race: "Protoss", tier: "Legend" },
+      { id: "Basic", race: "Terran", tier: "Silver" },
+      { id: "Attaboy", race: "Zerg", tier: "Diamond" },
+      { id: "Rupark", race: "Zerg", tier: "Diamond" },
+      { id: "Hani", race: "Terran", tier: "Gold" },
+      { id: "Hyunho", race: "Zerg", tier: "Silver" },
+      { id: "umi", race: "Protoss", tier: "Bronze" },
+      { id: "Rocky", race: "Terran", tier: "Silver" },
+      { id: "Veeny", race: "Terran", tier: "Gold" },
+      { id: "Miny", race: "Protoss", tier: "Silver" },
+      { id: "Friend", race: "Protoss", tier: "Silver" },
+      { id: "coolguy", race: "Zerg", tier: "Silver" },
+      { id: "dopamine", race: "Zerg", tier: "Diamond" },
+      { id: "DanielK", race: "Zerg", tier: "Bronze" },
+      { id: "MiSTY", race: "Protoss", tier: "Silver" },
+      { id: "GgoMajin", race: "Terran", tier: "Silver" },
+      { id: "Mukddak", race: "Terran", tier: "Silver" },
+      { id: "Zeze", race: "Protoss", tier: "Gold" },
+      { id: "Skidashi", race: "Zerg", tier: "Gold" },
+      { id: "Templar", race: "Protoss", tier: "Gold" },
+      { id: "essence", race: "Protoss", tier: "Bronze" },
+      { id: "Macho", race: "Protoss", tier: "Diamond" }
+    ];
+
+    const tbody = document.getElementById('member-list');
+    players.forEach(p => {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td>${p.id}</td><td>${p.race}</td><td class="tier-${p.tier}">${p.tier}</td>`;
+      tbody.appendChild(tr);
+    });
+
+    document.querySelectorAll('.tab-btn').forEach(btn=>{
+      btn.addEventListener('click',()=>{
+        document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+        btn.classList.add('active');
+        document.querySelectorAll('section').forEach(sec=>sec.classList.remove('active'));
+        document.getElementById(btn.dataset.tab).classList.add('active');
+      });
+    });
   </script>
 </body>
 </html>
