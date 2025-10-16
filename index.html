@@ -8,66 +8,186 @@
   <script src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/recharts/umd/Recharts.min.js"></script>
   <style>
-    body{font-family:system-ui,-apple-system,'Noto Sans KR',sans-serif;background:#0b0710;color:#eee;margin:0}
-    header{padding:20px;text-align:center;background:#14141a}
-    h1{color:#ff6a00;margin:0}
-    main{max-width:1100px;margin:20px auto;padding:0 16px}
-    .card{background:rgba(255,255,255,0.03);padding:16px;border-radius:12px;margin-bottom:16px}
+    :root{ --bg1:#0b0710;--bg2:#14050a;--accent:#ff6a00;--muted:#a7a0a8;--card:rgba(255,255,255,0.03); }
+    *{box-sizing:border-box}
+    body{font-family:system-ui,-apple-system,'Segoe UI',Roboto,'Noto Sans KR','Apple SD Gothic Neo','Malgun Gothic',sans-serif;margin:0;color:#eee;background:linear-gradient(180deg,var(--bg1),var(--bg2));}
+    header{padding:20px;text-align:center;background:linear-gradient(90deg,rgba(255,255,255,0.02),rgba(0,0,0,0.06));box-shadow:0 6px 30px rgba(0,0,0,0.5)}
+    header h1{margin:0;color:var(--accent)}
+    header .sub{color:var(--muted);font-size:13px;margin-top:6px}
+    nav{display:flex;gap:10px;justify-content:center;padding:10px;background:#14141a;position:sticky;top:0;z-index:2}
+    nav button{background:#1a1a22;border:1px solid #232532;color:#ddd;padding:10px 14px;border-radius:10px;cursor:pointer}
+    nav button.active{background:var(--accent);color:#111}
+    main{max-width:1100px;margin:18px auto;padding:0 16px}
+    section{display:none}
+    section.active{display:block}
+    .card{background:var(--card);padding:14px;border-radius:12px;box-shadow:inset 0 1px 0 rgba(255,255,255,0.02);margin-bottom:16px}
     table{width:100%;border-collapse:collapse}
     th,td{padding:8px 10px;border-bottom:1px solid rgba(255,255,255,0.06);text-align:center}
-    th{color:#a7a0a8;text-transform:uppercase;font-size:12px}
+    th{color:var(--muted);font-size:12px;text-transform:uppercase}
+    tr:hover{background:rgba(255,255,255,0.03)}
+    .tier-Stone{color:#8b8b8b}.tier-Bronze{color:#cd7f32}.tier-Silver{color:#c0c0c0}.tier-Gold{color:#ffd700}.tier-Diamond{color:#67e8f9}.tier-Legend{color:#ff7f50}
+    .muted{color:var(--muted)}
+    .match{border:1px solid rgba(255,255,255,0.08);padding:10px;border-radius:10px;background:rgba(255,255,255,0.02);margin-bottom:10px;cursor:pointer}
+    .details{display:none;margin-top:8px;font-size:14px;color:#ddd}
+    .details.active{display:block}
+    .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
+    .filters > *{flex:1 1 160px}
+    .rank-badge{background:#252532;border:1px solid #2f3140;border-radius:8px;padding:2px 8px;font-weight:700;display:inline-block;margin-right:6px}
   </style>
 </head>
 <body>
   <header>
     <h1>RockClan Records</h1>
-    <div>클랜원 랭킹 • 기록실 • ELO 그래프</div>
+    <div class="sub">클랜원 랭킹 • 기록실 • ELO 설명 • 변동 그래프</div>
   </header>
+
+  <nav>
+    <button class="tab active" data-tab="players">클랜원 랭킹</button>
+    <button class="tab" data-tab="records">기록실</button>
+    <button class="tab" data-tab="elo-info">ELO 시스템 설명</button>
+    <button class="tab" data-tab="chart">ELO 변동 그래프</button>
+  </nav>
+
   <main>
-    <div class="card">
-      <h2 style="margin-top:0">클랜원 랭킹</h2>
-      <table id="players"><thead><tr><th>Rank</th><th>ID</th><th>Race</th><th>Tier</th><th>ELO</th><th>W</th><th>L</th><th>WR</th></tr></thead><tbody></tbody></table>
-    </div>
-    <div class="card">
-      <h2 style="margin-top:0">ELO 변동 그래프</h2>
-      <div id="chart" style="width:100%;height:360px"></div>
-    </div>
+    <section id="players" class="active">
+      <div class="card">
+        <h2 style="margin:6px 0;color:var(--accent)">클랜원 랭킹</h2>
+        <div class="filters">
+          <input id="search" placeholder="id 검색" style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff">
+          <select id="raceFilter" style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff">
+            <option value="">종족 전체</option><option>Protoss</option><option>Terran</option><option>Zerg</option><option>Random</option>
+          </select>
+          <select id="tierFilter" style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff">
+            <option value="">티어 전체</option><option>Stone</option><option>Bronze</option><option>Silver</option><option>Gold</option><option>Diamond</option><option>Legend</option>
+          </select>
+        </div>
+        <div class="muted" style="font-size:13px;margin-bottom:6px">전체 인원, 종족/티어, 현재 ELO, 승률(%) — <span id="counts"></span></div>
+        <table id="players-table">
+          <thead><tr><th>Rank</th><th>ID</th><th>종족</th><th>티어</th><th>ELO</th><th>승</th><th>패</th><th>승률</th></tr></thead>
+          <tbody></tbody>
+        </table>
+      </div>
+    </section>
+
+    <section id="records">
+      <div class="card">
+        <h2 style="margin:6px 0;color:var(--accent)">기록실 (Matchday 접기/펼치기)</h2>
+        <div id="match-list"></div>
+      </div>
+    </section>
+
+    <section id="elo-info">
+      <div class="card">
+        <h2 style="margin:6px 0;color:var(--accent)">ELO 시스템 설명</h2>
+        <p>초기 ELO는 <b>1000</b>, 개인전 <b>K=24</b>, 팀전은 <b>60%</b> 반영. 티어보정: <code>1+0.2×Δindex</code></p>
+      </div>
+    </section>
+
+    <section id="chart">
+      <div class="card">
+        <h2 style="margin:6px 0;color:var(--accent)">ELO 변동 그래프</h2>
+        <div id="elo-chart" style="width:100%;height:440px"></div>
+      </div>
+    </section>
   </main>
-<script>
-fetch('data.json').then(r=>r.json()).then(data=>{
-  const tbody = document.querySelector('#players tbody');
-  const list = [...data.players].sort((a,b)=> b.elo - a.elo);
-  list.forEach((p,i)=>{
-    const wr = p.played ? ((p.win/p.played)*100).toFixed(1)+'%' : '-';
-    const tr = document.createElement('tr');
-    tr.innerHTML = `<td>${i+1}</td><td>${p.id}</td><td>${p.race}</td><td>${p.tier}</td><td>${Math.round(p.elo)}</td><td>${p.win||0}</td><td>${p.loss||0}</td><td>${wr}</td>`;
-    tbody.appendChild(tr);
-  });
-  const ids = list.slice(0,8).map(p=>p.id);
-  const series = {};
-  list.forEach(p=>{
-    (p.history||[]).forEach((v,i)=>{
-      if(!series[i]) series[i] = { step:i };
-      series[i][p.id] = v;
+
+  <script>
+    document.querySelectorAll('nav .tab').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        document.querySelectorAll('nav .tab').forEach(b=>b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+        document.getElementById(e.currentTarget.dataset.tab).classList.add('active');
+      });
     });
-  });
-  const chartData = Object.keys(series).sort((a,b)=>a-b).map(k=>series[k]);
-  const lines = ids.map((pid,i)=> React.createElement(Recharts.Line, { key:pid, type:'monotone', dataKey:pid, stroke:`hsl(${(i*47)%360} 70% 60%)`, dot:false, strokeWidth:2 }));
-  ReactDOM.render(
-    React.createElement(Recharts.ResponsiveContainer,{width:'100%',height:320},
-      React.createElement(Recharts.LineChart,{data:chartData},
-        React.createElement(Recharts.XAxis,{dataKey:'step'}),
-        React.createElement(Recharts.YAxis,{}),
-        React.createElement(Recharts.Tooltip,{}),
-        React.createElement(Recharts.Legend,{}),
-        ...lines
-      )
-    ),
-    document.getElementById('chart')
-  );
-}).catch(err=>{
-  console.error(err);
-});
-</script>
+
+    function ensureRechartsReady(cb){
+      let t=0; const h=setInterval(()=>{ t++; if(window.Recharts){clearInterval(h); cb();} if(t>60){clearInterval(h);} },100);
+    }
+
+    function groupByMatchday(matches){
+      const groups=[]; let current=null; let md=0;
+      for(const m of matches){
+        if(!current || current.date!==m.date || m.map==='Matchday'){
+          if(m.map==='Matchday'){ md = current && current.date===m.date ? md+1 : 1; current={date:m.date,index:md,header:m,sets:[]}; groups.push(current); }
+          else { if(!current || current.date!==m.date){ md=1; current={date:m.date,index:md,header:null,sets:[]}; groups.push(current); } }
+        }
+        if(m.map==='Matchday'){ current.header=m; } else { current.sets.push(m); }
+      }
+      return groups;
+    }
+
+    fetch('data.json').then(r=>r.json()).then(data=>{
+      // Players
+      const tbody=document.querySelector('#players-table tbody');
+      const s=document.getElementById('search'); const rf=document.getElementById('raceFilter'); const tf=document.getElementById('tierFilter');
+      function render(){
+        tbody.innerHTML='';
+        const kw=(s.value||'').toLowerCase(); const race=rf.value; const tier=tf.value;
+        const sorted=[...data.players].sort((a,b)=>b.elo-a.elo).filter(p=>(!kw||p.id.toLowerCase().includes(kw))&&(!race||p.race===race)&&(!tier||p.tier===tier));
+        sorted.forEach((p,i)=>{
+          const played=p.played||0, win=p.win||0, loss=p.loss||0, wr=played?((win/played)*100).toFixed(1)+'%':'-';
+          const tr=document.createElement('tr');
+          tr.innerHTML=`
+            <td><span class="rank-badge">${i+1}</span></td>
+            <td>${p.id}</td>
+            <td>${p.race}</td>
+            <td class="tier-${p.tier}">${p.tier}</td>
+            <td>${Math.round(p.elo)}</td>
+            <td>${win}</td>
+            <td>${loss}</td>
+            <td>${wr}</td>`;
+          tbody.appendChild(tr);
+        });
+        document.getElementById('counts').textContent=\`Players: \${data.players.length} | Matches: \${data.matches.length}\`;
+      }
+      s.addEventListener('input',render); rf.addEventListener('change',render); tf.addEventListener('change',render); render();
+
+      // Records
+      const list=document.getElementById('match-list');
+      const groups=groupByMatchday([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
+      groups.forEach(g=>{
+        const box=document.createElement('div'); box.className='match';
+        const head=document.createElement('div');
+        head.innerHTML = g.header ? `<b>${g.date}</b> | Matchday | 승자: ${Array.isArray(g.header.winner)? g.header.winner.join(', '): (g.header.winner||'-')} | 스코어: ${g.header.score||'-'}` : `<b>${g.date}</b> | 세트 모음`;
+        const det=document.createElement('div'); det.className='details';
+        if(g.sets.length===0){ det.innerHTML='<div class="muted">세트 기록 없음</div>'; }
+        else {
+          g.sets.forEach(m=>{
+            const row=document.createElement('div');
+            let s=`• ${m.map} — `;
+            if(m.team1 && m.team2){ s+=`${m.team1.join(', ')} vs ${m.team2.join(', ')}`; if(m.winner) s+=` | 승자: ${Array.isArray(m.winner)? m.winner.join(', '): m.winner}`; }
+            else if(m.player1 && m.player2){ s+=`${m.player1} vs ${m.player2}`; if(m.winner) s+=` | 승자: ${m.winner}`; }
+            if(m.score) s+=` | 스코어: ${m.score}`;
+            row.textContent=s; det.appendChild(row);
+          });
+        }
+        box.appendChild(head); box.appendChild(det); box.addEventListener('click',()=>det.classList.toggle('active')); list.appendChild(box);
+      });
+
+      // Chart (top 12 lines)
+      ensureRechartsReady(()=>{
+        try{
+          const {LineChart,Line,XAxis,YAxis,Tooltip,Legend,ResponsiveContainer}=Recharts;
+          const ppl=[...data.players].sort((a,b)=>b.elo-a.elo).slice(0,12);
+          const series={}; ppl.forEach(p=>{ (p.history||[p.elo]).forEach((v,i)=>{ if(!series[i]) series[i]={step:i}; series[i][p.id]=v; }); });
+          const chartData=Object.keys(series).sort((a,b)=>a-b).map(k=>series[k]);
+          const lines=ppl.map((p,i)=>React.createElement(Line,{key:p.id,type:'monotone',dataKey:p.id,stroke:`hsl(${(i*37)%360},70%,60%)`,strokeWidth:2,dot:false}));
+          ReactDOM.render(
+            React.createElement(ResponsiveContainer,{width:'100%',height:400},
+              React.createElement(LineChart,{data:chartData},
+                React.createElement(XAxis,{dataKey:'step'}),
+                React.createElement(YAxis,{}),
+                React.createElement(Tooltip,{}),
+                React.createElement(Legend,{}),
+                ...lines
+              )
+            ),
+            document.getElementById('elo-chart')
+          );
+        }catch(e){}
+      });
+    }).catch(()=>{});
+  </script>
 </body>
 </html>
