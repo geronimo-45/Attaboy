@@ -117,83 +117,83 @@
       return groups;
     }
 
-   fetch('data.json')
-  .then(response => response.text())
-  .then(text => JSON.parse(text))
-  .then(data => {
-    // ✅ 기존 데이터 처리 코드
-  })
-  .catch(err => console.error('JSON load error:', err));
-      // Players
-      const tbody=document.querySelector('#players-table tbody');
-      const s=document.getElementById('search'); const rf=document.getElementById('raceFilter'); const tf=document.getElementById('tierFilter');
-      function render(){
-        tbody.innerHTML='';
-        const kw=(s.value||'').toLowerCase(); const race=rf.value; const tier=tf.value;
-        const sorted=[...data.players].sort((a,b)=>b.elo-a.elo).filter(p=>(!kw||p.id.toLowerCase().includes(kw))&&(!race||p.race===race)&&(!tier||p.tier===tier));
-        sorted.forEach((p,i)=>{
-          const played=p.played||0, win=p.win||0, loss=p.loss||0, wr=played?((win/played)*100).toFixed(1)+'%':'-';
-          const tr=document.createElement('tr');
-          tr.innerHTML=`
-            <td><span class="rank-badge">${i+1}</span></td>
-            <td>${p.id}</td>
-            <td>${p.race}</td>
-            <td class="tier-${p.tier}">${p.tier}</td>
-            <td>${Math.round(p.elo)}</td>
-            <td>${win}</td>
-            <td>${loss}</td>
-            <td>${wr}</td>`;
-          tbody.appendChild(tr);
-        });
-        document.getElementById('counts').textContent=\`Players: \${data.players.length} | Matches: \${data.matches.length}\`;
-      }
-      s.addEventListener('input',render); rf.addEventListener('change',render); tf.addEventListener('change',render); render();
+    // ✅ 완전 호환 fetch 방식
+    fetch('https://geronimo-45.github.io/Attaboy/data.json')
+      .then(r => r.text())
+      .then(text => {
+        try {
+          const data = JSON.parse(text);
+          const tbody=document.querySelector('#players-table tbody');
+          const s=document.getElementById('search'); const rf=document.getElementById('raceFilter'); const tf=document.getElementById('tierFilter');
+          function render(){
+            tbody.innerHTML='';
+            const kw=(s.value||'').toLowerCase(); const race=rf.value; const tier=tf.value;
+            const sorted=[...data.players].sort((a,b)=>b.elo-a.elo).filter(p=>(!kw||p.id.toLowerCase().includes(kw))&&(!race||p.race===race)&&(!tier||p.tier===tier));
+            sorted.forEach((p,i)=>{
+              const played=p.played||0, win=p.win||0, loss=p.loss||0, wr=played?((win/played)*100).toFixed(1)+'%':'-';
+              const tr=document.createElement('tr');
+              tr.innerHTML=`
+                <td><span class="rank-badge">${i+1}</span></td>
+                <td>${p.id}</td>
+                <td>${p.race}</td>
+                <td class="tier-${p.tier}">${p.tier}</td>
+                <td>${Math.round(p.elo)}</td>
+                <td>${win}</td>
+                <td>${loss}</td>
+                <td>${wr}</td>`;
+              tbody.appendChild(tr);
+            });
+            document.getElementById('counts').textContent=\`Players: \${data.players.length} | Matches: \${data.matches.length}\`;
+          }
+          s.addEventListener('input',render); rf.addEventListener('change',render); tf.addEventListener('change',render); render();
 
-      // Records
-      const list=document.getElementById('match-list');
-      const groups=groupByMatchday([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
-      groups.forEach(g=>{
-        const box=document.createElement('div'); box.className='match';
-        const head=document.createElement('div');
-        head.innerHTML = g.header ? `<b>${g.date}</b> | Matchday | 승자: ${Array.isArray(g.header.winner)? g.header.winner.join(', '): (g.header.winner||'-')} | 스코어: ${g.header.score||'-'}` : `<b>${g.date}</b> | 세트 모음`;
-        const det=document.createElement('div'); det.className='details';
-        if(g.sets.length===0){ det.innerHTML='<div class="muted">세트 기록 없음</div>'; }
-        else {
-          g.sets.forEach(m=>{
-            const row=document.createElement('div');
-            let s=`• ${m.map} — `;
-            if(m.team1 && m.team2){ s+=`${m.team1.join(', ')} vs ${m.team2.join(', ')}`; if(m.winner) s+=` | 승자: ${Array.isArray(m.winner)? m.winner.join(', '): m.winner}`; }
-            else if(m.player1 && m.player2){ s+=`${m.player1} vs ${m.player2}`; if(m.winner) s+=` | 승자: ${m.winner}`; }
-            if(m.score) s+=` | 스코어: ${m.score}`;
-            row.textContent=s; det.appendChild(row);
+          const list=document.getElementById('match-list');
+          const groups=groupByMatchday([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
+          groups.forEach(g=>{
+            const box=document.createElement('div'); box.className='match';
+            const head=document.createElement('div');
+            head.innerHTML = g.header ? `<b>${g.date}</b> | Matchday | 승자: ${Array.isArray(g.header.winner)? g.header.winner.join(', '): (g.header.winner||'-')} | 스코어: ${g.header.score||'-'}` : `<b>${g.date}</b> | 세트 모음`;
+            const det=document.createElement('div'); det.className='details';
+            if(g.sets.length===0){ det.innerHTML='<div class="muted">세트 기록 없음</div>'; }
+            else {
+              g.sets.forEach(m=>{
+                const row=document.createElement('div');
+                let s=`• ${m.map} — `;
+                if(m.team1 && m.team2){ s+=`${m.team1.join(', ')} vs ${m.team2.join(', ')}`; if(m.winner) s+=` | 승자: ${Array.isArray(m.winner)? m.winner.join(', '): m.winner}`; }
+                else if(m.player1 && m.player2){ s+=`${m.player1} vs ${m.player2}`; if(m.winner) s+=` | 승자: ${m.winner}`; }
+                if(m.score) s+=` | 스코어: ${m.score}`;
+                row.textContent=s; det.appendChild(row);
+              });
+            }
+            box.appendChild(head); box.appendChild(det); box.addEventListener('click',()=>det.classList.toggle('active')); list.appendChild(box);
           });
-        }
-        box.appendChild(head); box.appendChild(det); box.addEventListener('click',()=>det.classList.toggle('active')); list.appendChild(box);
-      });
 
-      // Chart (top 12 lines)
-      ensureRechartsReady(()=>{
-        try{
-          const {LineChart,Line,XAxis,YAxis,Tooltip,Legend,ResponsiveContainer}=Recharts;
-          const ppl=[...data.players].sort((a,b)=>b.elo-a.elo).slice(0,12);
-          const series={}; ppl.forEach(p=>{ (p.history||[p.elo]).forEach((v,i)=>{ if(!series[i]) series[i]={step:i}; series[i][p.id]=v; }); });
-          const chartData=Object.keys(series).sort((a,b)=>a-b).map(k=>series[k]);
-          const lines=ppl.map((p,i)=>React.createElement(Line,{key:p.id,type:'monotone',dataKey:p.id,stroke:`hsl(${(i*37)%360},70%,60%)`,strokeWidth:2,dot:false}));
-          ReactDOM.render(
-            React.createElement(ResponsiveContainer,{width:'100%',height:400},
-              React.createElement(LineChart,{data:chartData},
-                React.createElement(XAxis,{dataKey:'step'}),
-                React.createElement(YAxis,{}),
-                React.createElement(Tooltip,{}),
-                React.createElement(Legend,{}),
-                ...lines
-              )
-            ),
-            document.getElementById('elo-chart')
-          );
-        }catch(e){}
-      });
-    }).catch(()=>{});
+          ensureRechartsReady(()=>{
+            try{
+              const {LineChart,Line,XAxis,YAxis,Tooltip,Legend,ResponsiveContainer}=Recharts;
+              const ppl=[...data.players].sort((a,b)=>b.elo-a.elo).slice(0,12);
+              const series={}; ppl.forEach(p=>{ (p.history||[p.elo]).forEach((v,i)=>{ if(!series[i]) series[i]={step:i}; series[i][p.id]=v; }); });
+              const chartData=Object.keys(series).sort((a,b)=>a-b).map(k=>series[k]);
+              const lines=ppl.map((p,i)=>React.createElement(Line,{key:p.id,type:'monotone',dataKey:p.id,stroke:`hsl(${(i*37)%360},70%,60%)`,strokeWidth:2,dot:false}));
+              ReactDOM.render(
+                React.createElement(ResponsiveContainer,{width:'100%',height:400},
+                  React.createElement(LineChart,{data:chartData},
+                    React.createElement(XAxis,{dataKey:'step'}),
+                    React.createElement(YAxis,{}),
+                    React.createElement(Tooltip,{}),
+                    React.createElement(Legend,{}),
+                    ...lines
+                  )
+                ),
+                document.getElementById('elo-chart')
+              );
+            }catch(e){}
+          });
+        } catch(err){
+          console.error('JSON parsing failed:', err);
+        }
+      })
+      .catch(e => console.error('Fetch failed:', e));
   </script>
 </body>
 </html>
