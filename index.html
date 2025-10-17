@@ -117,7 +117,13 @@
       return groups;
     }
 
-    fetch('data.json').then(r=>r.json()).then(data=>{
+   fetch('data.json')
+  .then(response => response.text())
+  .then(text => JSON.parse(text))
+  .then(data => {
+    // ✅ 기존 데이터 처리 코드
+  })
+  .catch(err => console.error('JSON load error:', err));
       // Players
       const tbody=document.querySelector('#players-table tbody');
       const s=document.getElementById('search'); const rf=document.getElementById('raceFilter'); const tf=document.getElementById('tierFilter');
