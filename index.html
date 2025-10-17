@@ -92,108 +92,200 @@
   </main>
 
   <script>
-    document.querySelectorAll('nav .tab').forEach(btn=>{
-      btn.addEventListener('click', e=>{
-        document.querySelectorAll('nav .tab').forEach(b=>b.classList.remove('active'));
+    // 탭 전환
+    var tabs = document.querySelectorAll('nav .tab');
+    for (var i=0;i<tabs.length;i++){
+      tabs[i].addEventListener('click', function(e){
+        for (var j=0;j<tabs.length;j++) tabs[j].classList.remove('active');
         e.currentTarget.classList.add('active');
-        document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
-        document.getElementById(e.currentTarget.dataset.tab).classList.add('active');
+        var secs = document.querySelectorAll('main section');
+        for (var k=0;k<secs.length;k++) secs[k].classList.remove('active');
+        document.getElementById(e.currentTarget.getAttribute('data-tab')).classList.add('active');
       });
-    });
+    }
 
     function ensureRechartsReady(cb){
-      let t=0; const h=setInterval(()=>{ t++; if(window.Recharts){clearInterval(h); cb();} if(t>60){clearInterval(h);} },100);
+      var t=0; var h=setInterval(function(){
+        t++; if(window.Recharts){clearInterval(h); cb();}
+        if(t>60){clearInterval(h);}
+      },100);
     }
 
     function groupByMatchday(matches){
-      const groups=[]; let current=null; let md=0;
-      for(const m of matches){
+      var groups=[]; var current=null; var md=0;
+      for(var i=0;i<matches.length;i++){
+        var m = matches[i];
         if(!current || current.date!==m.date || m.map==='Matchday'){
-          if(m.map==='Matchday'){ md = current && current.date===m.date ? md+1 : 1; current={date:m.date,index:md,header:m,sets:[]}; groups.push(current); }
-          else { if(!current || current.date!==m.date){ md=1; current={date:m.date,index:md,header:null,sets:[]}; groups.push(current); } }
+          if(m.map==='Matchday'){
+            md = (current && current.date===m.date) ? md+1 : 1;
+            current={date:m.date,index:md,header:m,sets:[]}; groups.push(current);
+          } else {
+            if(!current || current.date!==m.date){ md=1; current={date:m.date,index:md,header:null,sets:[]}; groups.push(current); }
+          }
         }
         if(m.map==='Matchday'){ current.header=m; } else { current.sets.push(m); }
       }
       return groups;
     }
 
-    // ✅ 완전 호환 fetch 방식
-    fetch('https://geronimo-45.github.io/Attaboy/data.json')
-      .then(r => r.text())
-      .then(text => {
-        try {
-          const data = JSON.parse(text);
-          const tbody=document.querySelector('#players-table tbody');
-          const s=document.getElementById('search'); const rf=document.getElementById('raceFilter'); const tf=document.getElementById('tierFilter');
-          function render(){
-            tbody.innerHTML='';
-            const kw=(s.value||'').toLowerCase(); const race=rf.value; const tier=tf.value;
-            const sorted=[...data.players].sort((a,b)=>b.elo-a.elo).filter(p=>(!kw||p.id.toLowerCase().includes(kw))&&(!race||p.race===race)&&(!tier||p.tier===tier));
-            sorted.forEach((p,i)=>{
-              const played=p.played||0, win=p.win||0, loss=p.loss||0, wr=played?((win/played)*100).toFixed(1)+'%':'-';
-              const tr=document.createElement('tr');
-              tr.innerHTML=`
-                <td><span class="rank-badge">${i+1}</span></td>
-                <td>${p.id}</td>
-                <td>${p.race}</td>
-                <td class="tier-${p.tier}">${p.tier}</td>
-                <td>${Math.round(p.elo)}</td>
-                <td>${win}</td>
-                <td>${loss}</td>
-                <td>${wr}</td>`;
-              tbody.appendChild(tr);
-            });
-            document.getElementById('counts').textContent=\`Players: \${data.players.length} | Matches: \${data.matches.length}\`;
-          }
-          s.addEventListener('input',render); rf.addEventListener('change',render); tf.addEventListener('change',render); render();
-
-          const list=document.getElementById('match-list');
-          const groups=groupByMatchday([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
-          groups.forEach(g=>{
-            const box=document.createElement('div'); box.className='match';
-            const head=document.createElement('div');
-            head.innerHTML = g.header ? `<b>${g.date}</b> | Matchday | 승자: ${Array.isArray(g.header.winner)? g.header.winner.join(', '): (g.header.winner||'-')} | 스코어: ${g.header.score||'-'}` : `<b>${g.date}</b> | 세트 모음`;
-            const det=document.createElement('div'); det.className='details';
-            if(g.sets.length===0){ det.innerHTML='<div class="muted">세트 기록 없음</div>'; }
-            else {
-              g.sets.forEach(m=>{
-                const row=document.createElement('div');
-                let s=`• ${m.map} — `;
-                if(m.team1 && m.team2){ s+=`${m.team1.join(', ')} vs ${m.team2.join(', ')}`; if(m.winner) s+=` | 승자: ${Array.isArray(m.winner)? m.winner.join(', '): m.winner}`; }
-                else if(m.player1 && m.player2){ s+=`${m.player1} vs ${m.player2}`; if(m.winner) s+=` | 승자: ${m.winner}`; }
-                if(m.score) s+=` | 스코어: ${m.score}`;
-                row.textContent=s; det.appendChild(row);
-              });
-            }
-            box.appendChild(head); box.appendChild(det); box.addEventListener('click',()=>det.classList.toggle('active')); list.appendChild(box);
-          });
-
-          ensureRechartsReady(()=>{
-            try{
-              const {LineChart,Line,XAxis,YAxis,Tooltip,Legend,ResponsiveContainer}=Recharts;
-              const ppl=[...data.players].sort((a,b)=>b.elo-a.elo).slice(0,12);
-              const series={}; ppl.forEach(p=>{ (p.history||[p.elo]).forEach((v,i)=>{ if(!series[i]) series[i]={step:i}; series[i][p.id]=v; }); });
-              const chartData=Object.keys(series).sort((a,b)=>a-b).map(k=>series[k]);
-              const lines=ppl.map((p,i)=>React.createElement(Line,{key:p.id,type:'monotone',dataKey:p.id,stroke:`hsl(${(i*37)%360},70%,60%)`,strokeWidth:2,dot:false}));
-              ReactDOM.render(
-                React.createElement(ResponsiveContainer,{width:'100%',height:400},
-                  React.createElement(LineChart,{data:chartData},
-                    React.createElement(XAxis,{dataKey:'step'}),
-                    React.createElement(YAxis,{}),
-                    React.createElement(Tooltip,{}),
-                    React.createElement(Legend,{}),
-                    ...lines
-                  )
-                ),
-                document.getElementById('elo-chart')
-              );
-            }catch(e){}
-          });
-        } catch(err){
-          console.error('JSON parsing failed:', err);
+    // XHR로 data.json 로드 (BOM/캐시 대비)
+    function loadJSON(url, onOk, onFail){
+      var xhr=new XMLHttpRequest();
+      xhr.open('GET', url, true);
+      xhr.overrideMimeType('application/json'); // 힌트
+      xhr.onreadystatechange=function(){
+        if(xhr.readyState===4){
+          if(xhr.status>=200 && xhr.status<300){
+            var txt=xhr.responseText || '';
+            // BOM/숨은 제어문자 제거
+            txt=txt.replace(/^\uFEFF/, '').replace(/\u0000/g,'');
+            try { onOk(JSON.parse(txt)); }
+            catch(err){ console.error('JSON parse error:', err); onFail && onFail(err); }
+          } else { onFail && onFail(new Error('HTTP '+xhr.status)); }
         }
-      })
-      .catch(e => console.error('Fetch failed:', e));
+      };
+      xhr.send(null);
+    }
+
+    var DATA_URL = 'data.json?v=20251017';
+
+    loadJSON(DATA_URL, function(data){
+      // Players
+      var tbody=document.querySelector('#players-table tbody');
+      var s=document.getElementById('search');
+      var rf=document.getElementById('raceFilter');
+      var tf=document.getElementById('tierFilter');
+
+      function render(){
+        tbody.innerHTML='';
+        var kw=(s.value||'').toLowerCase();
+        var race=rf.value;
+        var tier=tf.value;
+
+        // 복사 & 정렬
+        var players=data.players.slice(0);
+        players.sort(function(a,b){return b.elo-a.elo;});
+
+        for(var i=0;i<players.length;i++){
+          var p=players[i];
+          if(kw && p.id.toLowerCase().indexOf(kw)===-1) continue;
+          if(race && p.race!==race) continue;
+          if(tier && p.tier!==tier) continue;
+
+          var played=p.played||0, win=p.win||0, loss=p.loss||0;
+          var wr = played ? (Math.round((win/played)*1000)/10).toFixed(1)+'%' : '-';
+
+          var tr=document.createElement('tr');
+          tr.innerHTML =
+            '<td><span class="rank-badge">'+(tbody.children.length+1)+'</span></td>'+
+            '<td>'+p.id+'</td>'+
+            '<td>'+p.race+'</td>'+
+            '<td class="tier-'+p.tier+'">'+p.tier+'</td>'+
+            '<td>'+Math.round(p.elo)+'</td>'+
+            '<td>'+win+'</td>'+
+            '<td>'+loss+'</td>'+
+            '<td>'+wr+'</td>';
+          tbody.appendChild(tr);
+        }
+        document.getElementById('counts').textContent =
+          'Players: '+data.players.length+' | Matches: '+data.matches.length;
+      }
+      s.addEventListener('input',render); rf.addEventListener('change',render); tf.addEventListener('change',render); render();
+
+      // Records
+      var list=document.getElementById('match-list');
+      var matches=data.matches.slice(0);
+      matches.sort(function(a,b){ return a.date<b.date ? -1 : (a.date>b.date ? 1 : 0); });
+      var groups=groupByMatchday(matches);
+
+      for(var g=0; g<groups.length; g++){
+        var grp=groups[g];
+        var box=document.createElement('div'); box.className='match';
+        var head=document.createElement('div');
+
+        var headHtml;
+        if(grp.header){
+          var w = grp.header.winner;
+          headHtml = '<b>'+grp.date+'</b> | Matchday | 승자: ' +
+                     (Object.prototype.toString.call(w)==='[object Array]' ? w.join(', ') : (w||'-')) +
+                     ' | 스코어: ' + (grp.header.score||'-');
+        }else{
+          headHtml = '<b>'+grp.date+'</b> | 세트 모음';
+        }
+        head.innerHTML=headHtml;
+
+        var det=document.createElement('div'); det.className='details';
+        if(!grp.sets || grp.sets.length===0){
+          det.innerHTML='<div class="muted">세트 기록 없음</div>';
+        }else{
+          for(var m=0;m<grp.sets.length;m++){
+            var mm=grp.sets[m];
+            var row=document.createElement('div');
+            var text='• '+mm.map+' — ';
+            if(mm.team1 && mm.team2){
+              text += mm.team1.join(', ')+' vs '+mm.team2.join(', ');
+              if(mm.winner){
+                text += ' | 승자: '+(Object.prototype.toString.call(mm.winner)==='[object Array]'? mm.winner.join(', ') : mm.winner);
+              }
+            }else if(mm.player1 && mm.player2){
+              text += mm.player1+' vs '+mm.player2;
+              if(mm.winner) text += ' | 승자: '+mm.winner;
+            }
+            if(mm.score) text += ' | 스코어: '+mm.score;
+            row.textContent=text;
+            det.appendChild(row);
+          }
+        }
+        box.appendChild(head); box.appendChild(det);
+        (function(d){ box.addEventListener('click', function(){ d.classList.toggle('active'); }); })(det);
+        list.appendChild(box);
+      }
+
+      // Chart
+      ensureRechartsReady(function(){
+        try{
+          var RC=Recharts;
+          var ppl=data.players.slice(0).sort(function(a,b){return b.elo-a.elo;}).slice(0,12);
+
+          var series={};
+          for(var i=0;i<ppl.length;i++){
+            var p=ppl[i];
+            var hist=p.history && p.history.length ? p.history : [p.elo];
+            for(var j=0;j<hist.length;j++){
+              if(!series[j]) series[j]={step:j};
+              series[j][p.id]=hist[j];
+            }
+          }
+
+          var keys=[]; for (var k in series) if(series.hasOwnProperty(k)) keys.push(k);
+          keys.sort(function(a,b){return parseInt(a,10)-parseInt(b,10);});
+          var chartData=[]; for(var ii=0;ii<keys.length;ii++) chartData.push(series[keys[ii]]);
+
+          var lines=[];
+          for(var li=0; li<ppl.length; li++){
+            lines.push(React.createElement(RC.Line,{
+              key:ppl[li].id, type:'monotone', dataKey:ppl[li].id,
+              stroke:'hsl('+((li*37)%360)+',70%,60%)', strokeWidth:2, dot:false
+            }));
+          }
+
+          ReactDOM.render(
+            React.createElement(RC.ResponsiveContainer,{width:'100%',height:400},
+              React.createElement(RC.LineChart,{data:chartData},
+                React.createElement(RC.XAxis,{dataKey:'step'}),
+                React.createElement(RC.YAxis,null),
+                React.createElement(RC.Tooltip,null),
+                React.createElement(RC.Legend,null)
+              , lines) // children 배열로 전달
+            ),
+            document.getElementById('elo-chart')
+          );
+        }catch(e){ console.error(e); }
+      });
+
+    }, function(err){
+      console.error('데이터 로드 실패:', err);
+    });
   </script>
 </body>
 </html>
