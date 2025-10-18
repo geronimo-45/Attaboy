@@ -149,6 +149,9 @@ window.addEventListener('error', e => {
 
     // ---- 데이터 고정(수복) 로직 ----
     function fixData(data){
++  // Ceta/Chan 정규화(전역) - 'Chann' 오표를 'Ceta'로 교정 + 프로필 강제 보정
++  data = normalizeCetaChan(data);
+
       // 1) Danny -> DanielK 통합 (매치 교체 + players 삭제)
       if(data.players.some(p=>p.id==='Danny')){
         data.matches.forEach(m=>{
