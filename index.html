@@ -81,7 +81,7 @@
     </section>
   </main>
 
-    <script>
+  <script>
     // 탭 전환
     document.querySelectorAll('nav .tab').forEach(btn=>{
       btn.addEventListener('click', e=>{
@@ -100,17 +100,23 @@
         .catch(e=>console.error('로드 실패',e));
     }
 
-    // ✅ 날짜별 그룹화 함수 복귀
-    function groupByMatchday(matches){
+    // ✅ 날짜별 Match 그룹화
+    function groupByDateMatch(matches){
       const groups=[];
-      let current=null;
+      let currentDate=null;
+      let currentMatches=[];
       for(const m of matches){
-        if(!current || current.date!==m.date){
-          current={date:m.date,sets:[]};
-          groups.push(current);
+        if(m.map==="Match") continue; // header 무시
+        if(m.date!==currentDate){
+          if(currentMatches.length){
+            groups.push({date:currentDate,matches:currentMatches});
+          }
+          currentDate=m.date;
+          currentMatches=[];
         }
-        current.sets.push(m);
+        currentMatches.push(m);
       }
+      if(currentMatches.length) groups.push({date:currentDate,matches:currentMatches});
       return groups;
     }
 
@@ -130,7 +136,7 @@
       };
 
       for(const m of data.matches){
-        if(m.map === "Matchday") continue;
+        if(m.map === "Match") continue;
         if(m.player1 && m.player2){
           const p1=m.player1, p2=m.player2, w=m.winner;
           if(w===p1) add([p1],[p2]);
@@ -187,20 +193,23 @@
       tf.addEventListener('change',render);
       render();
 
-      // ✅ 기록실 복원 (날짜별 접기/펼치기)
+      // ✅ 기록실 (날짜별 접기/펼치기)
       const list=document.getElementById('match-list');
       list.innerHTML='';
-      const groups=groupByMatchday([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
+      const groups=groupByDateMatch([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
+
       groups.forEach(g=>{
         const box=document.createElement('div');
         box.className='match';
         const head=document.createElement('div');
-        head.innerHTML=`<b>${g.date}</b> | 세트 ${g.sets.length}개`;
+        head.innerHTML=`<b>${g.date}</b> | Match ${g.matches.length}개`;
         const det=document.createElement('div');
         det.className='details';
-        det.innerHTML=g.sets.map(
-          s=>`<div>${s.map}: ${s.player1||s.team1} vs ${s.player2||s.team2} — 승자: ${s.winner}</div>`
-        ).join('');
+        det.innerHTML=g.matches.map((m,idx)=>`
+          <div style="margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:4px">
+            <b>Match ${idx+1}</b><br>
+            ${m.map}: ${m.player1||m.team1} vs ${m.player2||m.team2} — <b>승자: ${m.winner}</b>
+          </div>`).join('');
         box.appendChild(head);
         box.appendChild(det);
         box.addEventListener('click',()=>det.classList.toggle('active'));
