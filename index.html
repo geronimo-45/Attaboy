@@ -132,24 +132,14 @@
       .catch(e=>console.error('로드 실패',e));
   }
 
-  // ✅ 날짜별 Match 그룹화
-  function groupByDateMatch(matches){
-    const groups=[];
-    let currentDate=null;
-    let currentMatches=[];
+  // ✅ 날짜별 Match 그룹화 (날짜 헤더 단위)
+  function groupByDate(matches){
+    const map = new Map();
     for(const m of matches){
-      if(m.map==="Match") continue; // header 무시
-      if(m.date!==currentDate){
-        if(currentMatches.length){
-          groups.push({date:currentDate,matches:currentMatches});
-        }
-        currentDate=m.date;
-        currentMatches=[];
-      }
-      currentMatches.push(m);
+      if(!map.has(m.date)) map.set(m.date, []);
+      map.get(m.date).push(m);
     }
-    if(currentMatches.length) groups.push({date:currentDate,matches:currentMatches});
-    return groups;
+    return Array.from(map.entries()).map(([date, items]) => ({date, matches: items}));
   }
 
   // --- 렌더링 ---
@@ -159,18 +149,23 @@
     const rf=document.getElementById('raceFilter');
     const tf=document.getElementById('tierFilter');
 
+    // ✅ 대소문자 무시용 ID 정규화
+    const normalize = id => id ? id.trim().toLowerCase() : '';
+
     // ✅ 정확 모드 승패 재집계 (중복 방지 + Match 제외)
     const stat = new Map();
-    const ensure = id => stat.get(id) || stat.set(id,{played:0,win:0,loss:0}).get(id);
+    const ensure = id => {
+      const key = normalize(id);
+      return stat.get(key) || stat.set(key,{played:0,win:0,loss:0}).get(key);
+    };
     const add = (winners, losers)=>{
       winners.forEach(id=>{const s=ensure(id); s.played++; s.win++;});
       losers.forEach(id=>{const s=ensure(id); s.played++; s.loss++;});
     };
 
+    // --- 집계 ---
     for(const m of data.matches){
-      // ❌ "map": "Match" 는 전적 집계에서 제외
-      if(m.map === "Match") continue;
-
+      if(m.map === "Match") continue; // Match 헤더는 집계 제외
       if(m.player1 && m.player2){
         const p1=m.player1, p2=m.player2, w=m.winner;
         if(w===p1) add([p1],[p2]);
@@ -178,29 +173,31 @@
         else { ensure(p1).played++; ensure(p2).played++; }
         continue;
       }
-
       if(Array.isArray(m.team1)&&Array.isArray(m.team2)){
         const t1=m.team1,t2=m.team2;
         const winners=Array.isArray(m.winner)?m.winner:[];
-        const wset=new Set(winners);
+        const wset=new Set(winners.map(normalize));
         const all=[...t1,...t2];
-        const losers=all.filter(x=>!wset.has(x));
+        const losers=all.filter(x=>!wset.has(normalize(x)));
         if(winners.length && losers.length) add(winners,losers);
         else all.forEach(id=>ensure(id).played++);
       }
     }
 
-    for(const id of stat.keys()){
-      let p=data.players.find(p=>p.id===id);
+    // --- stat 반영 ---
+    for(const key of stat.keys()){
+      let p = data.players.find(p => p.id.toLowerCase() === key);
       if(!p){
-        p={id,race:'Protoss',tier:'Silver',elo:1000,played:0,win:0,loss:0,history:[1000]};
+        p = {id:key, race:'Protoss', tier:'Silver', elo:1000, played:0, win:0, loss:0, history:[1000]};
         data.players.push(p);
       }
-      const s=stat.get(id);
-      p.played=s.played; p.win=s.win; p.loss=s.loss;
+      const s = stat.get(key);
+      p.played = s.played;
+      p.win = s.win;
+      p.loss = s.loss;
     }
 
-    // 표 렌더링
+    // --- 표 렌더링 ---
     function render(){
       tbody.innerHTML='';
       const kw=(s.value||'').toLowerCase(), race=rf.value, tier=tf.value;
@@ -228,23 +225,30 @@
     tf.addEventListener('change',render);
     render();
 
-    // ✅ 기록실 (날짜별 접기/펼치기)
+    // ✅ 기록실 (날짜별 헤더 + Match 개수 + 세트 펼치기)
     const list=document.getElementById('match-list');
     list.innerHTML='';
-    const groups=groupByDateMatch([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
+    const groups=groupByDate([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
 
     groups.forEach(g=>{
       const box=document.createElement('div');
       box.className='match';
+      const matchCount = g.matches.filter(m => m.map === "Match").length || 0;
       const head=document.createElement('div');
-      head.innerHTML=`<b>${g.date}</b> | Match ${g.matches.length}개`;
+      head.innerHTML=`<b>${g.date}</b> | Match ${matchCount}개`;
       const det=document.createElement('div');
       det.className='details';
-      det.innerHTML=g.matches.map((m,idx)=>`
-        <div style="margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:4px">
-          <b>Match ${idx+1}</b><br>
-          ${m.map}: ${m.player1||m.team1} vs ${m.player2||m.team2} — <b>승자: ${m.winner}</b>
-        </div>`).join('');
+      det.innerHTML=g.matches.map((m,idx)=>{
+        let s=`• ${m.map} — `;
+        if(Array.isArray(m.team1) && Array.isArray(m.team2)){
+          s+=`${m.team1.join(', ')} vs ${m.team2.join(', ')}`;
+        }else if(m.player1 && m.player2){
+          s+=`${m.player1} vs ${m.player2}`;
+        }
+        s+=` | 승자: ${Array.isArray(m.winner)?m.winner.join(', '):(m.winner||'-')}`;
+        if(m.score) s+=` | 스코어: ${m.score}`;
+        return `<div style="margin-bottom:4px">${s}</div>`;
+      }).join('');
       box.appendChild(head);
       box.appendChild(det);
       box.addEventListener('click',()=>det.classList.toggle('active'));
@@ -254,7 +258,6 @@
 
   start();
 </script>
-
 
 </body>
 </html>
