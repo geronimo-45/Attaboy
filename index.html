@@ -100,27 +100,27 @@
       .catch(e=>console.error('로드 실패',e));
   }
 
-  // ✅ 날짜 & Matchday 기준 그룹화 (이전 UI 복구)
-  function groupByMatchday(matches){
+  // ✅ 날짜 & Match 기준 그룹화 (Matchday → Match 호환)
+  function groupByMatch(matches){
     const groups=[]; 
     let current=null; 
     let currentDate=''; 
-    let md=0;
+    let idx=0;
 
     for(const m of matches){
       const key = m.date;
-      const isHeader = (m.map === 'Matchday');
+      const isHeader = (m.map === 'Match');
 
-      // 새 날짜이거나 새로운 Matchday 헤더가 오면 새 그룹 시작
+      // 새 날짜이거나 새로운 Match 헤더가 오면 새 그룹 시작
       if(!current || currentDate!==key || isHeader){
         if(isHeader){
-          md = (current && currentDate===key) ? md+1 : 1;
-          current = {date:m.date, index:md, header:m, sets:[]};
+          idx = (current && currentDate===key) ? idx+1 : 1;
+          current = {date:m.date, index:idx, header:m, sets:[]};
           groups.push(current);
         }else{
           if(!current || currentDate!==key){
-            md = 1;
-            current = {date:m.date, index:md, header:null, sets:[]};
+            idx = 1;
+            current = {date:m.date, index:idx, header:null, sets:[]};
             groups.push(current);
           }
         }
@@ -153,7 +153,7 @@
     };
 
     for(const m of data.matches){
-      if(m.map === "Matchday") continue;
+      if(m.map === "Match") continue;
       if(m.player1 && m.player2){
         const p1=m.player1, p2=m.player2, w=m.winner;
         if(w===p1) add([p1],[p2]);
@@ -210,10 +210,10 @@
     tf.addEventListener('change',render);
     render();
 
-    // --- ✅ 기록실 (이전 Matchday UI 복원) ---
+    // --- ✅ 기록실 (Match 기반 UI 복원) ---
     const list = document.getElementById('match-list');
     list.innerHTML = '';
-    const groups = groupByMatchday(
+    const groups = groupByMatch(
       [...data.matches].sort((a, b) => a.date.localeCompare(b.date))
     );
 
@@ -227,9 +227,9 @@
           ? g.header.winner.join(', ')
           : (g.header.winner || '-');
         const score = g.header.score || '-';
-        head.innerHTML = `<b>${g.date}</b> | Matchday ${g.index} | 승자: ${winners} | 스코어: ${score}`;
+        head.innerHTML = `<b>${g.date}</b> | Match ${g.index} | 승자: ${winners} | 스코어: ${score}`;
       } else {
-        head.innerHTML = `<b>${g.date}</b> | Matchday ${g.index}`;
+        head.innerHTML = `<b>${g.date}</b> | Match ${g.index}`;
       }
 
       const det = document.createElement('div');
