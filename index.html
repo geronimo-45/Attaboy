@@ -79,38 +79,43 @@
         <div id="match-list"></div>
       </div>
     </section>
-        <section id="elo-info">
-      <div class="card">
-        <h2 style="margin:6px 0;color:var(--accent)">ELO 시스템 설명</h2>
+    <section id="elo-info">
+  <div class="card">
+    <h2 style="margin:6px 0;color:var(--accent)">ELO 시스템 설명</h2>
+    <p style="line-height:1.6;color:#ddd">
+      ELO(이로) 시스템은 각 플레이어의 상대 전력을 수치로 표현하는 방식입니다.<br>
+      RockClan에서는 모든 <b>기록실(match)</b> 데이터를 기반으로 자동 계산되며,
+      JSON에 기록된 <code>history</code>는 참고용으로만 사용됩니다.
+    </p>
+    <ul style="line-height:1.8;color:#ccc;margin-left:12px">
+      <li><b>초기 ELO</b>: 모든 신규 플레이어는 <b>1000점</b>에서 시작합니다.</li>
+      <li><b>K 값</b> (변동 계수):
         <ul>
-          <li>초기 ELO: <b>1000</b></li>
-          <li>개인전 K-계수: <b>24</b> (팀전은 <b>60%</b> 반영)</li>
-          <li>티어 보정 계수: <code>1 + 0.2 × ΔtierIndex</code></li>
-          <li>랭킹 정렬 기준: 현재 ELO (상단 “클랜원 랭킹” 표)</li>
-          <li>승/패/승률: 기록실 데이터를 다시 집계하여 표시 (기록이 우선)</li>
+          <li>개인전(1:1): <b>K = 12</b></li>
+          <li>팀전(2:2, 3:3, 4:4 등): <b>K = 8</b></li>
         </ul>
+      </li>
+      <li>
+        경기 결과에 따라 예상 승률(Expected Score)과 실제 결과(Actual Score)의 차이를 반영해 ELO가 변동됩니다.<br>
+        예를 들어, 약자가 강자를 이길 경우 ELO 상승폭이 크며, 강자가 약자를 이길 경우 상승폭이 작습니다.
+      </li>
+      <li>
+        팀전의 경우 팀 평균 ELO를 기준으로 상대 팀과 비교하여 승패 결과를 반영합니다.
+      </li>
+      <li>
+        <b>승/패, 경기 수</b>는 모든 기록실 데이터를 기준으로 자동 집계되며, 이중 계산이나 누락이 발생하지 않습니다.
+      </li>
+      <li>
+        경기 데이터(`map: "Match"`)는 요약용 헤더이며, ELO에는 포함되지 않습니다.
+      </li>
+    </ul>
+    <p style="margin-top:10px;color:#999">
+      ※ 본 시스템은 K값 조정을 통해 변동 폭을 안정화시켰으며,<br>
+      팀전 비중이 높은 플레이어도 ELO 변동이 과도하지 않도록 설계되었습니다.
+    </p>
+  </div>
+</section>
 
-        <div class="muted" style="margin:8px 0 4px">티어 인덱스 예시: Stone 0, Bronze 1, Silver 2, Gold 3, Diamond 4, Legend 5</div>
-        <table style="width:100%;border-collapse:collapse">
-          <thead>
-            <tr>
-              <th style="border-bottom:1px solid rgba(255,255,255,0.1);padding:6px">매치업</th>
-              <th style="border-bottom:1px solid rgba(255,255,255,0.1);padding:6px">ΔtierIndex</th>
-              <th style="border-bottom:1px solid rgba(255,255,255,0.1);padding:6px">보정계수</th>
-              <th style="border-bottom:1px solid rgba(255,255,255,0.1);padding:6px">이겼을 때</th>
-              <th style="border-bottom:1px solid rgba(255,255,255,0.1);padding:6px">졌을 때</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr><td style="padding:6px">동일 티어 vs 동일 티어</td><td style="padding:6px">0</td><td style="padding:6px">1.0</td><td style="padding:6px">기본 K=24</td><td style="padding:6px">기본 K=24</td></tr>
-            <tr><td style="padding:6px">한 단계↑ vs 한 단계↓</td><td style="padding:6px">+1/-1</td><td style="padding:6px">1.2 / 0.8</td><td style="padding:6px">아랫티어가 이기면 더 크게 +</td><td style="padding:6px">윗티어가 지면 더 크게 -</td></tr>
-            <tr><td style="padding:6px">두 단계↑ vs 두 단계↓</td><td style="padding:6px">+2/-2</td><td style="padding:6px">1.4 / 0.6</td><td style="padding:6px">언더독 승리 시 큰 +</td><td style="padding:6px">강자 패배 시 큰 -</td></tr>
-            <tr><td style="padding:6px">세 단계↑ vs 세 단계↓</td><td style="padding:6px">+3/-3</td><td style="padding:6px">1.6 / 0.4</td><td style="padding:6px">아주 큰 +</td><td style="padding:6px">아주 큰 -</td></tr>
-          </tbody>
-        </table>
-        <div class="note">* 실제 증감은 상대 ELO, 예상승률 등에 따라 달라집니다. 위 표는 보정 계수의 방향성을 설명합니다.</div>
-      </div>
-    </section>
   </main>
 
 <script>
@@ -218,17 +223,18 @@
     }
 
     // --- ELO 계산 ---
-    const K = 10;
     data.players.forEach(p=>p.elo=1000); // 초기화
 
     for(const m of data.matches){
       if(m.map === "Match") continue;
 
+      // 1:1 경기
       if(m.player1 && m.player2){
         const p1=ensurePlayer(m.player1);
         const p2=ensurePlayer(m.player2);
         if(!m.winner) continue;
 
+        const K = 12; // ⚙️ 1:1 전용 K값
         const expected1 = 1 / (1 + Math.pow(10, (p2.elo - p1.elo) / 400));
         const expected2 = 1 - expected1;
         const result1 = m.winner === p1.id ? 1 : 0;
@@ -236,6 +242,7 @@
         p1.elo += K * (result1 - expected1);
         p2.elo += K * (result2 - expected2);
       } 
+      // 팀전
       else if(Array.isArray(m.team1) && Array.isArray(m.team2)){
         const t1 = m.team1.map(ensurePlayer);
         const t2 = m.team2.map(ensurePlayer);
@@ -244,6 +251,7 @@
         const winSet = new Set(m.winner || []);
         const team1Win = m.team1.some(id=>winSet.has(id));
 
+        const K = 8; // ⚙️ 팀전 전용 K값
         const expected1 = 1 / (1 + Math.pow(10, (avg2 - avg1)/400));
         const result1 = team1Win ? 1 : 0;
         const diff = K * (result1 - expected1);
