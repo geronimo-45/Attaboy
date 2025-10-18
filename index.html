@@ -81,144 +81,187 @@
     </section>
   </main>
 
-  <script>
-    // 탭 전환
-    document.querySelectorAll('nav .tab').forEach(btn=>{
-      btn.addEventListener('click', e=>{
-        document.querySelectorAll('nav .tab').forEach(b=>b.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
-        document.getElementById(e.currentTarget.dataset.tab).classList.add('active');
-      });
+<script>
+  // 탭 전환
+  document.querySelectorAll('nav .tab').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      document.querySelectorAll('nav .tab').forEach(b=>b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+      document.getElementById(e.currentTarget.dataset.tab).classList.add('active');
     });
+  });
 
-    // --- 데이터 로드 ---
-    function start(){
-      fetch('data.json',{cache:'no-cache'})
-        .then(r=>r.json())
-        .then(renderAll)
-        .catch(e=>console.error('로드 실패',e));
-    }
+  // --- 데이터 로드 ---
+  function start(){
+    fetch('data.json',{cache:'no-cache'})
+      .then(r=>r.json())
+      .then(renderAll)
+      .catch(e=>console.error('로드 실패',e));
+  }
 
-    // ✅ 날짜별 Match 그룹화
-    function groupByDateMatch(matches){
-      const groups=[];
-      let currentDate=null;
-      let currentMatches=[];
-      for(const m of matches){
-        if(m.map==="Match") continue; // header 무시
-        if(m.date!==currentDate){
-          if(currentMatches.length){
-            groups.push({date:currentDate,matches:currentMatches});
+  // ✅ 날짜 & Matchday 기준 그룹화 (이전 UI 복구)
+  function groupByMatchday(matches){
+    const groups=[]; 
+    let current=null; 
+    let currentDate=''; 
+    let md=0;
+
+    for(const m of matches){
+      const key = m.date;
+      const isHeader = (m.map === 'Matchday');
+
+      // 새 날짜이거나 새로운 Matchday 헤더가 오면 새 그룹 시작
+      if(!current || currentDate!==key || isHeader){
+        if(isHeader){
+          md = (current && currentDate===key) ? md+1 : 1;
+          current = {date:m.date, index:md, header:m, sets:[]};
+          groups.push(current);
+        }else{
+          if(!current || currentDate!==key){
+            md = 1;
+            current = {date:m.date, index:md, header:null, sets:[]};
+            groups.push(current);
           }
-          currentDate=m.date;
-          currentMatches=[];
         }
-        currentMatches.push(m);
+        currentDate = key;
       }
-      if(currentMatches.length) groups.push({date:currentDate,matches:currentMatches});
-      return groups;
+
+      // 헤더면 header 갱신, 아니면 세트 추가
+      if(isHeader){ 
+        current.header = m; 
+      }else{ 
+        current.sets.push(m); 
+      }
+    }
+    return groups;
+  }
+
+  // --- 렌더링 ---
+  function renderAll(data){
+    const tbody=document.querySelector('#players-table tbody');
+    const s=document.getElementById('search');
+    const rf=document.getElementById('raceFilter');
+    const tf=document.getElementById('tierFilter');
+
+    // ✅ 중복 방지된 정확 승패 재집계 로직
+    const stat = new Map();
+    const ensure = id => stat.get(id) || stat.set(id,{played:0,win:0,loss:0}).get(id);
+    const add = (winners, losers)=>{
+      winners.forEach(id=>{const s=ensure(id); s.played++; s.win++;});
+      losers.forEach(id=>{const s=ensure(id); s.played++; s.loss++;});
+    };
+
+    for(const m of data.matches){
+      if(m.map === "Matchday") continue;
+      if(m.player1 && m.player2){
+        const p1=m.player1, p2=m.player2, w=m.winner;
+        if(w===p1) add([p1],[p2]);
+        else if(w===p2) add([p2],[p1]);
+        else { ensure(p1).played++; ensure(p2).played++; }
+        continue;
+      }
+      if(Array.isArray(m.team1)&&Array.isArray(m.team2)){
+        const t1=m.team1,t2=m.team2;
+        const winners=Array.isArray(m.winner)?m.winner:[];
+        const wset=new Set(winners);
+        const all=[...t1,...t2];
+        const losers=all.filter(x=>!wset.has(x));
+        if(winners.length && losers.length) add(winners,losers);
+        else all.forEach(id=>ensure(id).played++);
+      }
     }
 
-    // --- 렌더링 ---
-    function renderAll(data){
-      const tbody=document.querySelector('#players-table tbody');
-      const s=document.getElementById('search');
-      const rf=document.getElementById('raceFilter');
-      const tf=document.getElementById('tierFilter');
-
-      // ✅ 정확 모드 승패 재집계 (중복 방지)
-      const stat = new Map();
-      const ensure = id => stat.get(id) || stat.set(id,{played:0,win:0,loss:0}).get(id);
-      const add = (winners, losers)=>{
-        winners.forEach(id=>{const s=ensure(id); s.played++; s.win++;});
-        losers.forEach(id=>{const s=ensure(id); s.played++; s.loss++;});
-      };
-
-      for(const m of data.matches){
-        if(m.map === "Match") continue;
-        if(m.player1 && m.player2){
-          const p1=m.player1, p2=m.player2, w=m.winner;
-          if(w===p1) add([p1],[p2]);
-          else if(w===p2) add([p2],[p1]);
-          else { ensure(p1).played++; ensure(p2).played++; }
-          continue;
-        }
-        if(Array.isArray(m.team1)&&Array.isArray(m.team2)){
-          const t1=m.team1,t2=m.team2;
-          const winners=Array.isArray(m.winner)?m.winner:[];
-          const wset=new Set(winners);
-          const all=[...t1,...t2];
-          const losers=all.filter(x=>!wset.has(x));
-          if(winners.length && losers.length) add(winners,losers);
-          else all.forEach(id=>ensure(id).played++);
-        }
+    for(const id of stat.keys()){
+      let p=data.players.find(p=>p.id===id);
+      if(!p){
+        p={id,race:'Protoss',tier:'Silver',elo:1000,played:0,win:0,loss:0,history:[1000]};
+        data.players.push(p);
       }
+      const s=stat.get(id);
+      p.played=s.played; p.win=s.win; p.loss=s.loss;
+    }
 
-      for(const id of stat.keys()){
-        let p=data.players.find(p=>p.id===id);
-        if(!p){
-          p={id,race:'Protoss',tier:'Silver',elo:1000,played:0,win:0,loss:0,history:[1000]};
-          data.players.push(p);
-        }
-        const s=stat.get(id);
-        p.played=s.played; p.win=s.win; p.loss=s.loss;
-      }
-
-      // 표 렌더링
-      function render(){
-        tbody.innerHTML='';
-        const kw=(s.value||'').toLowerCase(), race=rf.value, tier=tf.value;
-        const sorted=[...data.players]
-          .sort((a,b)=>b.elo-a.elo)
-          .filter(p=>(!kw||p.id.toLowerCase().includes(kw))&&(!race||p.race===race)&&(!tier||p.tier===tier));
-        sorted.forEach((p,i)=>{
-          const wr=p.played?((p.win/p.played)*100).toFixed(1)+'%':'-';
-          const tr=document.createElement('tr');
-          tr.innerHTML=`
-            <td><span class="rank-badge">${i+1}</span></td>
-            <td>${p.id}</td>
-            <td>${p.race}</td>
-            <td class="tier-${p.tier}">${p.tier}</td>
-            <td>${Math.round(p.elo)}</td>
-            <td>${p.win}</td>
-            <td>${p.loss}</td>
-            <td>${wr}</td>`;
-          tbody.appendChild(tr);
-        });
-        document.getElementById('counts').textContent=`Players: ${data.players.length} | Matches: ${data.matches.length}`;
-      }
-      s.addEventListener('input',render);
-      rf.addEventListener('change',render);
-      tf.addEventListener('change',render);
-      render();
-
-      // ✅ 기록실 (날짜별 접기/펼치기)
-      const list=document.getElementById('match-list');
-      list.innerHTML='';
-      const groups=groupByDateMatch([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
-
-      groups.forEach(g=>{
-        const box=document.createElement('div');
-        box.className='match';
-        const head=document.createElement('div');
-        head.innerHTML=`<b>${g.date}</b> | Match ${g.matches.length}개`;
-        const det=document.createElement('div');
-        det.className='details';
-        det.innerHTML=g.matches.map((m,idx)=>`
-          <div style="margin-bottom:6px;border-bottom:1px solid rgba(255,255,255,0.05);padding-bottom:4px">
-            <b>Match ${idx+1}</b><br>
-            ${m.map}: ${m.player1||m.team1} vs ${m.player2||m.team2} — <b>승자: ${m.winner}</b>
-          </div>`).join('');
-        box.appendChild(head);
-        box.appendChild(det);
-        box.addEventListener('click',()=>det.classList.toggle('active'));
-        list.appendChild(box);
+    // --- 표 렌더링 ---
+    function render(){
+      tbody.innerHTML='';
+      const kw=(s.value||'').toLowerCase(), race=rf.value, tier=tf.value;
+      const sorted=[...data.players]
+        .sort((a,b)=>b.elo-a.elo)
+        .filter(p=>(!kw||p.id.toLowerCase().includes(kw))&&(!race||p.race===race)&&(!tier||p.tier===tier));
+      sorted.forEach((p,i)=>{
+        const wr=p.played?((p.win/p.played)*100).toFixed(1)+'%':'-';
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td><span class="rank-badge">${i+1}</span></td>
+          <td>${p.id}</td>
+          <td>${p.race}</td>
+          <td class="tier-${p.tier}">${p.tier}</td>
+          <td>${Math.round(p.elo)}</td>
+          <td>${p.win}</td>
+          <td>${p.loss}</td>
+          <td>${wr}</td>`;
+        tbody.appendChild(tr);
       });
+      document.getElementById('counts').textContent=`Players: ${data.players.length} | Matches: ${data.matches.length}`;
     }
+    s.addEventListener('input',render);
+    rf.addEventListener('change',render);
+    tf.addEventListener('change',render);
+    render();
 
-    start();
-  </script>
+    // --- ✅ 기록실 (이전 Matchday UI 복원) ---
+    const list = document.getElementById('match-list');
+    list.innerHTML = '';
+    const groups = groupByMatchday(
+      [...data.matches].sort((a, b) => a.date.localeCompare(b.date))
+    );
+
+    groups.forEach(g => {
+      const box = document.createElement('div');
+      box.className = 'match';
+
+      const head = document.createElement('div');
+      if (g.header) {
+        const winners = Array.isArray(g.header.winner)
+          ? g.header.winner.join(', ')
+          : (g.header.winner || '-');
+        const score = g.header.score || '-';
+        head.innerHTML = `<b>${g.date}</b> | Matchday ${g.index} | 승자: ${winners} | 스코어: ${score}`;
+      } else {
+        head.innerHTML = `<b>${g.date}</b> | Matchday ${g.index}`;
+      }
+
+      const det = document.createElement('div');
+      det.className = 'details';
+
+      if (!g.sets || g.sets.length === 0) {
+        det.innerHTML = '<div class="muted">세트 기록 없음</div>';
+      } else {
+        g.sets.forEach(m => {
+          const row = document.createElement('div');
+          let s = `• ${m.map} — `;
+          if (Array.isArray(m.team1) && Array.isArray(m.team2)) {
+            s += `${m.team1.join(', ')} vs ${m.team2.join(', ')}`;
+          } else if (m.player1 && m.player2) {
+            s += `${m.player1} vs ${m.player2}`;
+          }
+          s += ` | 승자: ${Array.isArray(m.winner) ? m.winner.join(', ') : (m.winner || '-')}`;
+          if (m.score) s += ` | 스코어: ${m.score}`;
+          row.textContent = s;
+          det.appendChild(row);
+        });
+      }
+
+      box.appendChild(head);
+      box.appendChild(det);
+      box.addEventListener('click', () => det.classList.toggle('active'));
+      list.appendChild(box);
+    });
+  }
+
+  start();
+</script>
 
 </body>
 </html>
