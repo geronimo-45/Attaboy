@@ -125,16 +125,17 @@
   });
 
   // --- 데이터 로드 ---
-  function start(){
-Promise.all([
-  fetch('data.json',{cache:'no-cache'}).then(r=>r.json()),
-  fetch('data_oct.json',{cache:'no-cache'}).then(r=>r.json())
-])
-.then(([sep, oct]) => {
-  sep.matches.push(...oct.matches);
-  renderAll(sep);
-})
-.catch(e=>console.error('로드 실패', e));
+function start(){
+  Promise.all([
+    fetch('data.json', { cache: 'no-cache' }).then(r => r.json()),
+    fetch('data_oct.json', { cache: 'no-cache' }).then(r => r.json())
+  ])
+  .then(([sep, oct]) => {
+    sep.matches.push(...oct.matches);
+    renderAll(sep);
+  })
+  .catch(e => console.error('로드 실패', e));
+}
 
   // ✅ 날짜별 Match 그룹화
   function groupByDate(matches){
