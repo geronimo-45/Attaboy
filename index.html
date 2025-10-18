@@ -148,7 +148,13 @@
     </p>
   </div>
 </section>
-
+<section id="chart">
+  <div class="card">
+    <h2 style="margin:6px 0;color:var(--accent)">ELO 변동 그래프</h2>
+    <div class="muted">그래프는 추후 추가 예정입니다.</div>
+  </div>
+</section>
+    
   </main>
 
 <script>
@@ -163,25 +169,28 @@
   });
 
   // --- 데이터 로드 ---
-function start(){
-  Promise.all([
-    fetch('data.json',{cache:'no-cache'}).then(r=>r.json()),
-    fetch('data_oct.json',{cache:'no-cache'}).then(r=>r.json())
-  ])
-  .then(([base, oct])=>{
-    // matches 합치기
-    base.matches = (base.matches || []).concat(oct.matches || []);
-    
-    // players 합치기 (중복 제거)
-    const ids = new Set(base.players.map(p=>p.id));
-    for(const p of oct.players){
-      if(!ids.has(p.id)) base.players.push(p);
-    }
+  function start(){
+    const safeLoad = (url) =>
+      fetch(url, { cache: 'no-cache' })
+        .then(r => r.ok ? r.json() : { players: [], matches: [] })
+        .catch(() => ({ players: [], matches: [] })); // 실패해도 빈 셋으로
 
-    renderAll(base);
-  })
-  .catch(e=>console.error('로드 실패', e));
-}
+    Promise.all([
+      safeLoad('data.json'),
+      safeLoad('data_oct.json')
+    ])
+    .then(([base, oct]) => {
+      // matches 합치기
+      base.matches = (base.matches || []).concat(oct.matches || []);
+
+      // players 합치기 (id 기준 중복 제거)
+      const seen = new Set((base.players || []).map(p => p.id));
+      (oct.players || []).forEach(p => { if (!seen.has(p.id)) base.players.push(p); });
+
+      renderAll(base);
+    })
+    .catch(e => console.error('로드 실패', e));
+  }
 
 
   // --- 날짜 & Match 기준 그룹화 ---
@@ -239,34 +248,52 @@ function start(){
       B.elo-=delta;
     };
 
-    for(const m of data.matches){
-      if(m.map==='Match') continue;
-      if(m.player1&&m.player2){
-        const p1=ensure(m.player1), p2=ensure(m.player2);
-        const w=m.winner;
-        if(w===m.player1){ calcEloChange(p1,p2,1,false); p1.win++; p2.loss++; }
-        else if(w===m.player2){ calcEloChange(p1,p2,0,false); p2.win++; p1.loss++; }
-        else { p1.played++; p2.played++; }
-        p1.played++; p2.played++;
-        continue;
-      }
-      if(Array.isArray(m.team1)&&Array.isArray(m.team2)){
-        const team1=m.team1.map(id=>ensure(id));
-        const team2=m.team2.map(id=>ensure(id));
-        const avg1=team1.reduce((a,b)=>a+b.elo,0)/team1.length;
-        const avg2=team2.reduce((a,b)=>a+b.elo,0)/team2.length;
-        const avgTier1=team1.reduce((a,b)=>a+getTierIndex(b.tier),0)/team1.length;
-        const avgTier2=team2.reduce((a,b)=>a+getTierIndex(b.tier),0)/team2.length;
-        const effective1=avg1+avgTier1*40;
-        const effective2=avg2+avgTier2*40;
-        const expected1=1/(1+Math.pow(10,(effective2-effective1)/400));
-        const winners=Array.isArray(m.winner)?m.winner:[];
-        const result1=winners.some(id=>m.team1.includes(id))?1:0;
-        const delta=8*(result1-expected1);
-        team1.forEach(p=>{p.elo+=delta; if(result1){p.win++;}else{p.loss++;} p.played++;});
-        team2.forEach(p=>{p.elo-=delta; if(!result1){p.win++;}else{p.loss++;} p.played++;});
-      }
-    }
+for (const m of data.matches) {
+  if (m.map === 'Match') continue;
+
+  // 1:1
+  if (m.player1 && m.player2) {
+    const p1 = ensure(m.player1), p2 = ensure(m.player2);
+    const w = m.winner;
+
+    if (w === m.player1) { 
+      calcEloChange(p1, p2, 1, false); 
+      p1.win++; p2.loss++; 
+    } else if (w === m.player2) { 
+      calcEloChange(p1, p2, 0, false); 
+      p2.win++; p1.loss++; 
+    } 
+    // 무승부(없다고 하셨지만 혹시 모를 케이스): 승패만 생략
+
+    // ✅ played는 **딱 한 번씩만** 증가
+    p1.played++; 
+    p2.played++;
+    continue;
+  }
+
+  // 팀전
+  if (Array.isArray(m.team1) && Array.isArray(m.team2)) {
+    const team1 = m.team1.map(id => ensure(id));
+    const team2 = m.team2.map(id => ensure(id));
+
+    // 평균 ELO + 평균 티어 보정
+    const avg1 = team1.reduce((a,b)=>a+b.elo,0)/team1.length;
+    const avg2 = team2.reduce((a,b)=>a+b.elo,0)/team2.length;
+    const avgTier1 = team1.reduce((a,b)=>a+getTierIndex(b.tier),0)/team1.length;
+    const avgTier2 = team2.reduce((a,b)=>a+getTierIndex(b.tier),0)/team2.length;
+    const effective1 = avg1 + avgTier1*40;
+    const effective2 = avg2 + avgTier2*40;
+
+    const expected1 = 1/(1+Math.pow(10,(effective2 - effective1)/400));
+    const winners = Array.isArray(m.winner) ? m.winner : [];
+    const result1 = winners.some(id => m.team1.includes(id)) ? 1 : 0;
+    const K = 8;
+    const delta = K * (result1 - expected1);
+
+    team1.forEach(p => { p.elo += delta; (result1 ? p.win++ : p.loss++); p.played++; });
+    team2.forEach(p => { p.elo -= delta; (!result1 ? p.win++ : p.loss++); p.played++; });
+  }
+}
 
     // --- 표 렌더링 ---
     function render(){
