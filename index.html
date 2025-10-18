@@ -125,26 +125,51 @@
   });
 
   // --- 데이터 로드 ---
-function start(){
-  Promise.all([
-    fetch('data.json', { cache: 'no-cache' }).then(r => r.json()),
-    fetch('data_oct.json', { cache: 'no-cache' }).then(r => r.json())
-  ])
-  .then(([sep, oct]) => {
-    sep.matches.push(...oct.matches);
-    renderAll(sep);
-  })
-  .catch(e => console.error('로드 실패', e));
-}
+  function start(){
+    Promise.all([
+      fetch('data.json',{cache:'no-cache'}).then(r=>r.json()),
+      fetch('data_oct.json',{cache:'no-cache'}).then(r=>r.json())
+    ])
+    .then(([sep, oct]) => {
+      sep.matches.push(...oct.matches);
+      renderAll(sep);
+    })
+    .catch(e=>console.error('로드 실패',e));
+  }
 
-  // ✅ 날짜별 Match 그룹화
-  function groupByDate(matches){
-    const map = new Map();
+  // 날짜 & Match 그룹화
+  function groupByMatch(matches){
+    const groups=[]; 
+    let current=null; 
+    let currentDate=''; 
+    let idx=0;
+
     for(const m of matches){
-      if(!map.has(m.date)) map.set(m.date, []);
-      map.get(m.date).push(m);
+      const key = m.date;
+      const isHeader = (m.map === 'Match');
+
+      if(!current || currentDate!==key || isHeader){
+        if(isHeader){
+          idx = (current && currentDate===key) ? idx+1 : 1;
+          current = {date:m.date, index:idx, header:m, sets:[]};
+          groups.push(current);
+        }else{
+          if(!current || currentDate!==key){
+            idx = 1;
+            current = {date:m.date, index:idx, header:null, sets:[]};
+            groups.push(current);
+          }
+        }
+        currentDate = key;
+      }
+
+      if(isHeader){ 
+        current.header = m; 
+      }else{ 
+        current.sets.push(m); 
+      }
     }
-    return Array.from(map.entries()).map(([date, items]) => ({date, matches: items}));
+    return groups;
   }
 
   // --- 렌더링 ---
@@ -154,50 +179,84 @@ function start(){
     const rf=document.getElementById('raceFilter');
     const tf=document.getElementById('tierFilter');
 
-    // ✅ ID 대소문자 무시
-    const normalize = id => id ? id.trim().toLowerCase() : '';
+    // 신규 플레이어 초기화
+    function ensurePlayer(id){
+      let p=data.players.find(p=>p.id===id);
+      if(!p){
+        p={id,race:'Protoss',tier:'Silver',elo:1000,played:0,win:0,loss:0};
+        data.players.push(p);
+      }
+      return p;
+    }
 
-    // ✅ 정확 승패 집계 (Match 헤더 제외)
+    // --- 승패 집계 ---
     const stat = new Map();
-    const ensure = id => {
-      const key = normalize(id);
-      return stat.get(key) || stat.set(key,{played:0,win:0,loss:0}).get(key);
-    };
-    const add = (winners, losers)=>{
-      winners.forEach(id=>{const s=ensure(id); s.played++; s.win++;});
-      losers.forEach(id=>{const s=ensure(id); s.played++; s.loss++;});
+    const ensureStat = id => stat.get(id) || stat.set(id,{played:0,win:0,loss:0}).get(id);
+    const addResult = (winners, losers)=>{
+      winners.forEach(id=>{const s=ensureStat(id); s.played++; s.win++;});
+      losers.forEach(id=>{const s=ensureStat(id); s.played++; s.loss++;});
     };
 
     for(const m of data.matches){
       if(m.map === "Match") continue;
       if(m.player1 && m.player2){
         const p1=m.player1, p2=m.player2, w=m.winner;
-        if(w===p1) add([p1],[p2]);
-        else if(w===p2) add([p2],[p1]);
-        else { ensure(p1).played++; ensure(p2).played++; }
+        if(w===p1) addResult([p1],[p2]);
+        else if(w===p2) addResult([p2],[p1]);
+        else { ensureStat(p1).played++; ensureStat(p2).played++; }
         continue;
       }
       if(Array.isArray(m.team1)&&Array.isArray(m.team2)){
         const t1=m.team1,t2=m.team2;
-        const winners=Array.isArray(m.winner)?m.winner:[];
-        const wset=new Set(winners.map(normalize));
+        const winners=Array.isArray(m.winner)?m.winner:[]; 
+        const wset=new Set(winners);
         const all=[...t1,...t2];
-        const losers=all.filter(x=>!wset.has(normalize(x)));
-        if(winners.length && losers.length) add(winners,losers);
-        else all.forEach(id=>ensure(id).played++);
+        const losers=all.filter(x=>!wset.has(x));
+        if(winners.length && losers.length) addResult(winners,losers);
+        else all.forEach(id=>ensureStat(id).played++);
       }
     }
 
-    for(const key of stat.keys()){
-      let p = data.players.find(p => p.id.toLowerCase() === key);
-      if(!p){
-        p = {id:key, race:'Protoss', tier:'Silver', elo:1000, played:0, win:0, loss:0, history:[1000]};
-        data.players.push(p);
+    // --- ELO 계산 ---
+    const K = 10;
+    data.players.forEach(p=>p.elo=1000); // 초기화
+
+    for(const m of data.matches){
+      if(m.map === "Match") continue;
+
+      if(m.player1 && m.player2){
+        const p1=ensurePlayer(m.player1);
+        const p2=ensurePlayer(m.player2);
+        if(!m.winner) continue;
+
+        const expected1 = 1 / (1 + Math.pow(10, (p2.elo - p1.elo) / 400));
+        const expected2 = 1 - expected1;
+        const result1 = m.winner === p1.id ? 1 : 0;
+        const result2 = 1 - result1;
+        p1.elo += K * (result1 - expected1);
+        p2.elo += K * (result2 - expected2);
+      } 
+      else if(Array.isArray(m.team1) && Array.isArray(m.team2)){
+        const t1 = m.team1.map(ensurePlayer);
+        const t2 = m.team2.map(ensurePlayer);
+        const avg1 = t1.reduce((a,b)=>a+b.elo,0)/t1.length;
+        const avg2 = t2.reduce((a,b)=>a+b.elo,0)/t2.length;
+        const winSet = new Set(m.winner || []);
+        const team1Win = m.team1.some(id=>winSet.has(id));
+
+        const expected1 = 1 / (1 + Math.pow(10, (avg2 - avg1)/400));
+        const result1 = team1Win ? 1 : 0;
+        const diff = K * (result1 - expected1);
+
+        t1.forEach(p => p.elo += diff);
+        t2.forEach(p => p.elo -= diff);
       }
-      const s = stat.get(key);
-      p.played = s.played;
-      p.win = s.win;
-      p.loss = s.loss;
+    }
+
+    // --- 승패/경기수 반영 ---
+    for(const [id,s] of stat.entries()){
+      const p=ensurePlayer(id);
+      p.played=s.played; p.win=s.win; p.loss=s.loss;
     }
 
     // --- 표 렌더링 ---
@@ -221,57 +280,59 @@ function start(){
           <td>${wr}</td>`;
         tbody.appendChild(tr);
       });
-      document.getElementById('counts').textContent=`Players: ${data.players.length} | Matches: ${data.matches.length}`;
+      document.getElementById('counts').textContent=
+        `Players: ${data.players.length} | Matches: ${data.matches.length}`;
     }
     s.addEventListener('input',render);
     rf.addEventListener('change',render);
     tf.addEventListener('change',render);
     render();
 
-    // ✅ 기록실 (날짜별 헤더 + 기본 접힘 + Match 사이 간격)
-    const list=document.getElementById('match-list');
-    list.innerHTML='';
-    const groups=groupByDate([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
+    // --- 기록실 ---
+    const list = document.getElementById('match-list');
+    list.innerHTML = '';
+    const groups = groupByMatch(
+      [...data.matches].sort((a, b) => a.date.localeCompare(b.date))
+    );
 
-    groups.forEach((g)=>{
-      const box=document.createElement('div');
-      box.className='match';
+    groups.forEach((g,gi) => {
+      const box = document.createElement('div');
+      box.className = 'match';
+      if (gi > 0) box.style.marginTop = '12px';
 
-      const matchCount = g.matches.filter(m => m.map === "Match").length || 0;
-      const head=document.createElement('div');
-      head.innerHTML=`<b>${g.date}</b> Match ${matchCount}`;
-      head.style.cursor='pointer';
+      const head = document.createElement('div');
+      const matchCount = g.sets ? g.sets.length : 0;
+      head.innerHTML = `<b>${g.date}</b> | Match ${g.index} (${matchCount}개 세트)`;
+      const det = document.createElement('div');
+      det.className = 'details';
 
-      const det=document.createElement('div');
-      det.className='details';
-      det.style.display='none';
-
-      // --- Match 헤더와 세트 구분 ---
-      const lines=[];
-      g.matches.forEach((m,idx)=>{
-        let s=`• ${m.map} — `;
-        if(Array.isArray(m.team1) && Array.isArray(m.team2)){
-          s+=`${m.team1.join(', ')} vs ${m.team2.join(', ')}`;
-        }else if(m.player1 && m.player2){
-          s+=`${m.player1} vs ${m.player2}`;
-        }
-        s+=` | 승자: ${Array.isArray(m.winner)?m.winner.join(', '):(m.winner||'-')}`;
-        if(m.score) s+=` | 스코어: ${m.score}`;
-
-        // 다음 Match 나오기 전에 한 줄만 띄움
-        const isNextMatch = g.matches[idx+1] && g.matches[idx+1].map === "Match";
-        const margin = isNextMatch ? 'margin-bottom:12px;' : '';
-        lines.push(`<div style="${margin}">${s}</div>`);
-      });
-      det.innerHTML=lines.join('');
-
-      head.addEventListener('click',()=>{
-        det.style.display = (det.style.display==='none') ? 'block' : 'none';
-      });
+      if (!g.sets || g.sets.length === 0) {
+        det.innerHTML = '<div class="muted">세트 기록 없음</div>';
+      } else {
+        g.sets.forEach(m => {
+          const row = document.createElement('div');
+          let s = `• ${m.map} — `;
+          if (Array.isArray(m.team1) && Array.isArray(m.team2)) {
+            s += `${m.team1.join(', ')} vs ${m.team2.join(', ')}`;
+          } else if (m.player1 && m.player2) {
+            s += `${m.player1} vs ${m.player2}`;
+          }
+          s += ` | 승자: ${Array.isArray(m.winner) ? m.winner.join(', ') : (m.winner || '-')}`;
+          if (m.score) s += ` | 스코어: ${m.score}`;
+          row.textContent = s;
+          det.appendChild(row);
+        });
+      }
 
       box.appendChild(head);
       box.appendChild(det);
       list.appendChild(box);
+
+      // 기본 접힘 상태
+      det.style.display = 'none';
+      box.addEventListener('click', () => {
+        det.style.display = det.style.display === 'none' ? 'block' : 'none';
+      });
     });
   }
 
