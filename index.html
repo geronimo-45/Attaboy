@@ -81,7 +81,7 @@
     </section>
   </main>
 
-  <script>
+    <script>
     // 탭 전환
     document.querySelectorAll('nav .tab').forEach(btn=>{
       btn.addEventListener('click', e=>{
@@ -100,6 +100,20 @@
         .catch(e=>console.error('로드 실패',e));
     }
 
+    // ✅ 날짜별 그룹화 함수 복귀
+    function groupByMatchday(matches){
+      const groups=[];
+      let current=null;
+      for(const m of matches){
+        if(!current || current.date!==m.date){
+          current={date:m.date,sets:[]};
+          groups.push(current);
+        }
+        current.sets.push(m);
+      }
+      return groups;
+    }
+
     // --- 렌더링 ---
     function renderAll(data){
       const tbody=document.querySelector('#players-table tbody');
@@ -107,7 +121,7 @@
       const rf=document.getElementById('raceFilter');
       const tf=document.getElementById('tierFilter');
 
-      // ✅ 정확 모드 승패 재집계
+      // ✅ 정확 모드 승패 재집계 (중복 방지)
       const stat = new Map();
       const ensure = id => stat.get(id) || stat.set(id,{played:0,win:0,loss:0}).get(id);
       const add = (winners, losers)=>{
@@ -117,7 +131,6 @@
 
       for(const m of data.matches){
         if(m.map === "Matchday") continue;
-        // 개인전
         if(m.player1 && m.player2){
           const p1=m.player1, p2=m.player2, w=m.winner;
           if(w===p1) add([p1],[p2]);
@@ -125,7 +138,6 @@
           else { ensure(p1).played++; ensure(p2).played++; }
           continue;
         }
-        // 팀전
         if(Array.isArray(m.team1)&&Array.isArray(m.team2)){
           const t1=m.team1,t2=m.team2;
           const winners=Array.isArray(m.winner)?m.winner:[];
@@ -137,7 +149,6 @@
         }
       }
 
-      // players 업데이트
       for(const id of stat.keys()){
         let p=data.players.find(p=>p.id===id);
         if(!p){
@@ -176,18 +187,29 @@
       tf.addEventListener('change',render);
       render();
 
-      // 기록실 렌더링 그대로 유지
+      // ✅ 기록실 복원 (날짜별 접기/펼치기)
       const list=document.getElementById('match-list');
       list.innerHTML='';
-      data.matches.filter(m=>m.map!=="Matchday").forEach(m=>{
-        const div=document.createElement('div');
-        div.className='match';
-        div.innerHTML=`<b>${m.date}</b> | ${m.map} | ${m.player1||m.team1} vs ${m.player2||m.team2} — 승자: ${m.winner}`;
-        list.appendChild(div);
+      const groups=groupByMatchday([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
+      groups.forEach(g=>{
+        const box=document.createElement('div');
+        box.className='match';
+        const head=document.createElement('div');
+        head.innerHTML=`<b>${g.date}</b> | 세트 ${g.sets.length}개`;
+        const det=document.createElement('div');
+        det.className='details';
+        det.innerHTML=g.sets.map(
+          s=>`<div>${s.map}: ${s.player1||s.team1} vs ${s.player2||s.team2} — 승자: ${s.winner}</div>`
+        ).join('');
+        box.appendChild(head);
+        box.appendChild(det);
+        box.addEventListener('click',()=>det.classList.toggle('active'));
+        list.appendChild(box);
       });
     }
 
     start();
   </script>
+
 </body>
 </html>
