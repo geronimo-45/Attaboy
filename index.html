@@ -132,7 +132,7 @@
       .catch(e=>console.error('로드 실패',e));
   }
 
-  // ✅ 날짜별 Match 그룹화 (날짜 헤더 단위)
+  // ✅ 날짜별 Match 그룹화
   function groupByDate(matches){
     const map = new Map();
     for(const m of matches){
@@ -225,7 +225,7 @@
     tf.addEventListener('change',render);
     render();
 
-    // ✅ 기록실 (날짜별 헤더 + Match 개수 + 세트 펼치기)
+    // ✅ 기록실 (날짜별 헤더 복원)
     const list=document.getElementById('match-list');
     list.innerHTML='';
     const groups=groupByDate([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
@@ -233,11 +233,17 @@
     groups.forEach(g=>{
       const box=document.createElement('div');
       box.className='match';
+
+      // 날짜별 Match 개수 (map === "Match" 기준)
       const matchCount = g.matches.filter(m => m.map === "Match").length || 0;
+
+      // 헤더: "2025-09-01 Match 2"
       const head=document.createElement('div');
-      head.innerHTML=`<b>${g.date}</b> | Match ${matchCount}개`;
+      head.innerHTML=`<b>${g.date}</b> Match ${matchCount}`;
       const det=document.createElement('div');
       det.className='details';
+
+      // 세트 목록
       det.innerHTML=g.matches.map((m,idx)=>{
         let s=`• ${m.map} — `;
         if(Array.isArray(m.team1) && Array.isArray(m.team2)){
@@ -249,6 +255,7 @@
         if(m.score) s+=` | 스코어: ${m.score}`;
         return `<div style="margin-bottom:4px">${s}</div>`;
       }).join('');
+
       box.appendChild(head);
       box.appendChild(det);
       box.addEventListener('click',()=>det.classList.toggle('active'));
