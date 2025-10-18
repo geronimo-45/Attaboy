@@ -84,91 +84,70 @@
     <h2 style="margin:6px 0;color:var(--accent)">ELO 시스템 설명</h2>
 
     <p style="line-height:1.6;color:#ddd">
-      ELO(엘로) 시스템은 각 플레이어의 상대 전력을 수치로 표현하는 방식입니다.<br>
+      RockClan의 ELO 시스템은 단순한 점수 차이뿐 아니라 <b>티어(Tier) 보정</b>을 포함하여 실제 실력 격차를 반영합니다.<br>
+      모든 계산은 기록실(match) 데이터를 기반으로 자동 수행됩니다.
     </p>
 
     <ul style="line-height:1.8;color:#ccc;margin-left:12px">
-      <li><b>초기 ELO</b>: 모든 신규 플레이어는 <b>1000점</b>에서 시작합니다.</li>
-      <li><b>K 값</b> (변동 계수):
+      <li><b>초기 ELO</b>: 신규 플레이어는 1000점으로 시작합니다.</li>
+      <li><b>K 값</b>:
         <ul>
           <li>개인전(1:1): <b>K = 12</b></li>
           <li>팀전(2:2, 3:3, 4:4 등): <b>K = 8</b></li>
         </ul>
       </li>
-      <li>
-        경기 결과에 따라 <b>예상 승률(Expected Score)</b>과 <b>실제 결과(Actual Score)</b>의 차이를 반영해 ELO가 변동됩니다.<br>
-        약자가 강자를 이길 경우 상승폭이 크며, 강자가 약자를 이길 경우 상승폭이 작습니다.
+      <li><b>티어 인덱스 보정</b>:
+        <ul>
+          <li>Stone=0, Bronze=1, Silver=2, Gold=3, Diamond=4, Legend=5</li>
+          <li>실제 계산은 <code>EffectiveElo = ELO + (TierIndex × 40)</code> 으로 수행됩니다.</li>
+        </ul>
       </li>
-      <li>
-        팀전의 경우 팀 평균 ELO를 기준으로 상대 팀과 비교하여 승패 결과를 반영합니다.
-      </li>
-      <li>
-        <b>승/패, 경기 수</b>는 모든 기록실 데이터를 기준으로 자동 집계되며, 이중 계산이나 누락이 발생하지 않습니다.
-      </li>
+      <li>예상 승률은 두 플레이어의 <b>EffectiveElo</b> 차이를 기준으로 계산됩니다.</li>
+      <li>경기 결과는 예상 승률 대비 실제 승패 차이만큼 ELO가 변동합니다.</li>
     </ul>
 
     <h3 style="margin-top:16px;color:var(--accent)">📈 ELO 계산 예시</h3>
-    <p style="line-height:1.6;color:#ccc;margin-left:8px">
-      아래는 티어 차이에 따른 ELO 변동 예시입니다.  
-      (K값은 <b>1:1 = 12</b>, <b>팀전 = 8</b> 기준)
-    </p>
-
     <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:14px;color:#ddd">
       <thead>
         <tr style="background:rgba(255,255,255,0.05)">
           <th style="padding:6px;border:1px solid rgba(255,255,255,0.1)">상황</th>
           <th style="padding:6px;border:1px solid rgba(255,255,255,0.1)">ELO 차이</th>
+          <th style="padding:6px;border:1px solid rgba(255,255,255,0.1)">티어 차이</th>
           <th style="padding:6px;border:1px solid rgba(255,255,255,0.1)">예상 승률</th>
-          <th style="padding:6px;border:1px solid rgba(255,255,255,0.1)">승리 시 변화</th>
-          <th style="padding:6px;border:1px solid rgba(255,255,255,0.1)">패배 시 변화</th>
+          <th style="padding:6px;border:1px solid rgba(255,255,255,0.1)">승리 시</th>
+          <th style="padding:6px;border:1px solid rgba(255,255,255,0.1)">패배 시</th>
         </tr>
       </thead>
       <tbody>
         <tr>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">1:1 (동등 실력)</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">0</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">50%</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">+6</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">−6</td>
+          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">1:1 (동티어, 동일 ELO)</td>
+          <td>0</td><td>0</td><td>50%</td><td>+6</td><td>−6</td>
         </tr>
         <tr>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">1:1 (100점 약자 승)</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">−100</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">36%</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">+8</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">−4</td>
+          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">Silver(2) vs Gold(3), 동점</td>
+          <td>0</td><td>+1</td><td>46%</td><td>+7</td><td>−5</td>
         </tr>
         <tr>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">1:1 (100점 강자 승)</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">+100</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">64%</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">+4</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">−8</td>
+          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">Gold(3) vs Silver(2), 동점</td>
+          <td>0</td><td>−1</td><td>54%</td><td>+5</td><td>−7</td>
         </tr>
         <tr>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">팀전 (평균 ELO 차 0)</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">0</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">50%</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">+4</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">−4</td>
+          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">팀전 (평균 동티어)</td>
+          <td>0</td><td>0</td><td>50%</td><td>+4</td><td>−4</td>
         </tr>
         <tr>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">팀전 (평균 ELO 차 200, 약팀 승)</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">−200</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">24%</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">+6</td>
-          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">−2</td>
+          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">팀전 (상대팀 평균 Diamond↑)</td>
+          <td>−150</td><td>+2</td><td>32%</td><td>+6</td><td>−3</td>
         </tr>
       </tbody>
     </table>
 
     <p style="margin-top:10px;color:#999">
-      ※ ELO 변동폭은 상대 실력차가 클수록 비대칭적으로 조정됩니다.<br>
-      약자가 승리할 때는 상승폭이 커지고, 강자가 패배할 때는 하락폭이 커집니다.
+      ※ ELO 계산식: <code>NewElo = OldElo + K × (Actual − Expected)</code><br>
+      ※ 티어 인덱스 보정으로 인해 상위 티어를 이길 경우 상승폭이 더 커집니다.
     </p>
   </div>
 </section>
-
 
   </main>
 
@@ -185,50 +164,44 @@
 
   // --- 데이터 로드 ---
   function start(){
-    Promise.all([
-      fetch('data.json',{cache:'no-cache'}).then(r=>r.json()),
-      fetch('data_oct.json',{cache:'no-cache'}).then(r=>r.json())
-    ])
-    .then(([sep, oct]) => {
-      sep.matches.push(...oct.matches);
-      renderAll(sep);
-    })
-    .catch(e=>console.error('로드 실패',e));
+    fetch('data.json',{cache:'no-cache'})
+      .then(r=>r.json())
+      .then(renderAll)
+      .catch(e=>console.error('로드 실패',e));
   }
 
-  // 날짜 & Match 그룹화
+  // --- 날짜 & Match 기준 그룹화 ---
   function groupByMatch(matches){
-    const groups=[]; 
-    let current=null; 
-    let currentDate=''; 
+    const groups=[];
+    let current=null;
+    let currentDate='';
     let idx=0;
-
     for(const m of matches){
-      const key = m.date;
-      const isHeader = (m.map === 'Match');
-
-      if(!current || currentDate!==key || isHeader){
+      const key=m.date;
+      const isHeader=(m.map==='Match');
+      if(!current||currentDate!==key||isHeader){
         if(isHeader){
-          idx = (current && currentDate===key) ? idx+1 : 1;
-          current = {date:m.date, index:idx, header:m, sets:[]};
+          idx=(current&&currentDate===key)?idx+1:1;
+          current={date:m.date,index:idx,header:m,sets:[]};
           groups.push(current);
         }else{
-          if(!current || currentDate!==key){
-            idx = 1;
-            current = {date:m.date, index:idx, header:null, sets:[]};
+          if(!current||currentDate!==key){
+            idx=1;
+            current={date:m.date,index:idx,header:null,sets:[]};
             groups.push(current);
           }
         }
-        currentDate = key;
+        currentDate=key;
       }
-
-      if(isHeader){ 
-        current.header = m; 
-      }else{ 
-        current.sets.push(m); 
-      }
+      if(isHeader){ current.header=m; } else { current.sets.push(m); }
     }
     return groups;
+  }
+
+  // --- 티어 인덱스 함수 (티어 보정용) ---
+  function getTierIndex(tier){
+    const order=['Stone','Bronze','Silver','Gold','Diamond','Legend'];
+    return Math.max(0,order.indexOf(tier));
   }
 
   // --- 렌더링 ---
@@ -238,96 +211,60 @@
     const rf=document.getElementById('raceFilter');
     const tf=document.getElementById('tierFilter');
 
-    // 신규 플레이어 초기화
-    function ensurePlayer(id){
-      let p=data.players.find(p=>p.id===id);
-      if(!p){
-        p={id,race:'Protoss',tier:'Silver',elo:1000,played:0,win:0,loss:0};
-        data.players.push(p);
-      }
-      return p;
-    }
+    // ✅ 중복 없는 승패/ELO 계산
+    const stat=new Map();
+    const ensure=id=>stat.get(id)||stat.set(id,{played:0,win:0,loss:0,elo:1000}).get(id);
 
-    // --- 승패 집계 ---
-    const stat = new Map();
-    const ensureStat = id => stat.get(id) || stat.set(id,{played:0,win:0,loss:0}).get(id);
-    const addResult = (winners, losers)=>{
-      winners.forEach(id=>{const s=ensureStat(id); s.played++; s.win++;});
-      losers.forEach(id=>{const s=ensureStat(id); s.played++; s.loss++;});
+    const calcEloChange=(A,B,result,isTeam)=>{
+      const K=isTeam?8:12;
+      const effA=A.elo+getTierIndex(A.tier)*40;
+      const effB=B.elo+getTierIndex(B.tier)*40;
+      const expectedA=1/(1+Math.pow(10,(effB-effA)/400));
+      const delta=K*(result-expectedA);
+      A.elo+=delta;
+      B.elo-=delta;
     };
 
     for(const m of data.matches){
-      if(m.map === "Match") continue;
-      if(m.player1 && m.player2){
-        const p1=m.player1, p2=m.player2, w=m.winner;
-        if(w===p1) addResult([p1],[p2]);
-        else if(w===p2) addResult([p2],[p1]);
-        else { ensureStat(p1).played++; ensureStat(p2).played++; }
+      if(m.map==='Match') continue;
+      if(m.player1&&m.player2){
+        const p1=ensure(m.player1), p2=ensure(m.player2);
+        const w=m.winner;
+        if(w===m.player1){ calcEloChange(p1,p2,1,false); p1.win++; p2.loss++; }
+        else if(w===m.player2){ calcEloChange(p1,p2,0,false); p2.win++; p1.loss++; }
+        else { p1.played++; p2.played++; }
+        p1.played++; p2.played++;
         continue;
       }
       if(Array.isArray(m.team1)&&Array.isArray(m.team2)){
-        const t1=m.team1,t2=m.team2;
-        const winners=Array.isArray(m.winner)?m.winner:[]; 
-        const wset=new Set(winners);
-        const all=[...t1,...t2];
-        const losers=all.filter(x=>!wset.has(x));
-        if(winners.length && losers.length) addResult(winners,losers);
-        else all.forEach(id=>ensureStat(id).played++);
+        const team1=m.team1.map(id=>ensure(id));
+        const team2=m.team2.map(id=>ensure(id));
+        const avg1=team1.reduce((a,b)=>a+b.elo,0)/team1.length;
+        const avg2=team2.reduce((a,b)=>a+b.elo,0)/team2.length;
+        const avgTier1=team1.reduce((a,b)=>a+getTierIndex(b.tier),0)/team1.length;
+        const avgTier2=team2.reduce((a,b)=>a+getTierIndex(b.tier),0)/team2.length;
+        const effective1=avg1+avgTier1*40;
+        const effective2=avg2+avgTier2*40;
+        const expected1=1/(1+Math.pow(10,(effective2-effective1)/400));
+        const winners=Array.isArray(m.winner)?m.winner:[];
+        const result1=winners.some(id=>m.team1.includes(id))?1:0;
+        const delta=8*(result1-expected1);
+        team1.forEach(p=>{p.elo+=delta; if(result1){p.win++;}else{p.loss++;} p.played++;});
+        team2.forEach(p=>{p.elo-=delta; if(!result1){p.win++;}else{p.loss++;} p.played++;});
       }
-    }
-
-    // --- ELO 계산 ---
-    data.players.forEach(p=>p.elo=1000); // 초기화
-
-    for(const m of data.matches){
-      if(m.map === "Match") continue;
-
-      // 1:1 경기
-      if(m.player1 && m.player2){
-        const p1=ensurePlayer(m.player1);
-        const p2=ensurePlayer(m.player2);
-        if(!m.winner) continue;
-
-        const K = 12; // ⚙️ 1:1 전용 K값
-        const expected1 = 1 / (1 + Math.pow(10, (p2.elo - p1.elo) / 400));
-        const expected2 = 1 - expected1;
-        const result1 = m.winner === p1.id ? 1 : 0;
-        const result2 = 1 - result1;
-        p1.elo += K * (result1 - expected1);
-        p2.elo += K * (result2 - expected2);
-      } 
-      // 팀전
-      else if(Array.isArray(m.team1) && Array.isArray(m.team2)){
-        const t1 = m.team1.map(ensurePlayer);
-        const t2 = m.team2.map(ensurePlayer);
-        const avg1 = t1.reduce((a,b)=>a+b.elo,0)/t1.length;
-        const avg2 = t2.reduce((a,b)=>a+b.elo,0)/t2.length;
-        const winSet = new Set(m.winner || []);
-        const team1Win = m.team1.some(id=>winSet.has(id));
-
-        const K = 8; // ⚙️ 팀전 전용 K값
-        const expected1 = 1 / (1 + Math.pow(10, (avg2 - avg1)/400));
-        const result1 = team1Win ? 1 : 0;
-        const diff = K * (result1 - expected1);
-
-        t1.forEach(p => p.elo += diff);
-        t2.forEach(p => p.elo -= diff);
-      }
-    }
-
-    // --- 승패/경기수 반영 ---
-    for(const [id,s] of stat.entries()){
-      const p=ensurePlayer(id);
-      p.played=s.played; p.win=s.win; p.loss=s.loss;
     }
 
     // --- 표 렌더링 ---
     function render(){
       tbody.innerHTML='';
-      const kw=(s.value||'').toLowerCase(), race=rf.value, tier=tf.value;
-      const sorted=[...data.players]
-        .sort((a,b)=>b.elo-a.elo)
-        .filter(p=>(!kw||p.id.toLowerCase().includes(kw))&&(!race||p.race===race)&&(!tier||p.tier===tier));
+      const kw=(s.value||'').toLowerCase(),race=rf.value,tier=tf.value;
+      const sorted=[...stat.keys()].map(id=>{
+        const sdata=stat.get(id);
+        const p=data.players.find(p=>p.id===id)||{id,race:'Protoss',tier:'Silver'};
+        return {...p,...sdata};
+      }).sort((a,b)=>b.elo-a.elo)
+      .filter(p=>(!kw||p.id.toLowerCase().includes(kw))&&(!race||p.race===race)&&(!tier||p.tier===tier));
+
       sorted.forEach((p,i)=>{
         const wr=p.played?((p.win/p.played)*100).toFixed(1)+'%':'-';
         const tr=document.createElement('tr');
@@ -342,8 +279,7 @@
           <td>${wr}</td>`;
         tbody.appendChild(tr);
       });
-      document.getElementById('counts').textContent=
-        `Players: ${data.players.length} | Matches: ${data.matches.length}`;
+      document.getElementById('counts').textContent=`Players: ${sorted.length} | Matches: ${data.matches.length}`;
     }
     s.addEventListener('input',render);
     rf.addEventListener('change',render);
@@ -351,53 +287,37 @@
     render();
 
     // --- 기록실 ---
-    const list = document.getElementById('match-list');
-    list.innerHTML = '';
-    const groups = groupByMatch(
-      [...data.matches].sort((a, b) => a.date.localeCompare(b.date))
-    );
-
-    groups.forEach((g,gi) => {
-      const box = document.createElement('div');
-      box.className = 'match';
-      if (gi > 0) box.style.marginTop = '12px';
-
-      const head = document.createElement('div');
-      const matchCount = g.sets ? g.sets.length : 0;
-      head.innerHTML = `<b>${g.date}</b> | Match ${g.index} (${matchCount}개 세트)`;
-      const det = document.createElement('div');
-      det.className = 'details';
-
-      if (!g.sets || g.sets.length === 0) {
-        det.innerHTML = '<div class="muted">세트 기록 없음</div>';
-      } else {
-        g.sets.forEach(m => {
-          const row = document.createElement('div');
-          let s = `• ${m.map} — `;
-          if (Array.isArray(m.team1) && Array.isArray(m.team2)) {
-            s += `${m.team1.join(', ')} vs ${m.team2.join(', ')}`;
-          } else if (m.player1 && m.player2) {
-            s += `${m.player1} vs ${m.player2}`;
-          }
-          s += ` | 승자: ${Array.isArray(m.winner) ? m.winner.join(', ') : (m.winner || '-')}`;
-          if (m.score) s += ` | 스코어: ${m.score}`;
-          row.textContent = s;
-          det.appendChild(row);
-        });
-      }
-
+    const list=document.getElementById('match-list');
+    list.innerHTML='';
+    const groups=groupByMatch([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
+    groups.forEach(g=>{
+      const box=document.createElement('div');
+      box.className='match';
+      const head=document.createElement('div');
+      if(g.header){
+        const w=Array.isArray(g.header.winner)?g.header.winner.join(', '):(g.header.winner||'-');
+        const score=g.header.score||'-';
+        head.innerHTML=`<b>${g.date}</b> | Match ${g.index} | 승자: ${w} | 스코어: ${score}`;
+      }else head.innerHTML=`<b>${g.date}</b> | Match ${g.index}`;
+      const det=document.createElement('div');
+      det.className='details';
+      if(!g.sets||!g.sets.length){ det.innerHTML='<div class="muted">세트 기록 없음</div>'; }
+      else g.sets.forEach(m=>{
+        const row=document.createElement('div');
+        let s=`• ${m.map} — `;
+        if(Array.isArray(m.team1)&&Array.isArray(m.team2)) s+=`${m.team1.join(', ')} vs ${m.team2.join(', ')}`;
+        else if(m.player1&&m.player2) s+=`${m.player1} vs ${m.player2}`;
+        s+=` | 승자: ${Array.isArray(m.winner)?m.winner.join(', '):(m.winner||'-')}`;
+        if(m.score) s+=` | 스코어: ${m.score}`;
+        row.textContent=s;
+        det.appendChild(row);
+      });
       box.appendChild(head);
       box.appendChild(det);
+      box.addEventListener('click',()=>det.classList.toggle('active'));
       list.appendChild(box);
-
-      // 기본 접힘 상태
-      det.style.display = 'none';
-      box.addEventListener('click', () => {
-        det.style.display = det.style.display === 'none' ? 'block' : 'none';
-      });
     });
   }
-
   start();
 </script>
 
