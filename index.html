@@ -37,6 +37,11 @@
     .note{font-size:12px;color:#aaa;margin-top:6px}
   </style>
 </head>
+  <script>
+window.addEventListener('error', e => {
+  console.error('🔥 SCRIPT ERROR LOCATION 🔥', e.filename, 'Line:', e.lineno, 'Col:', e.colno);
+});
+</script>
 <body>
   <header>
     <h1>RockClan Records</h1>
