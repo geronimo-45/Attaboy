@@ -37,7 +37,7 @@
     .note{font-size:12px;color:#aaa;margin-top:6px}
   </style>
 </head>
-  <script>
+<script>
 window.addEventListener('error', e => {
   console.error('🔥 SCRIPT ERROR LOCATION 🔥', e.filename, 'Line:', e.lineno, 'Col:', e.colno);
 });
@@ -70,10 +70,10 @@ window.addEventListener('error', e => {
         </div>
         <div class="muted" style="font-size:13px;margin-bottom:6px">전체 인원, 종족/티어, 현재 ELO, 승률(%) — <span id="counts"></span></div>
         <table id="players-table">
-          <thead><tr><th>Rank</th><th>ID</th><th>종족</th><th>티어</th><th>ELO</th><th>승</th><th>패</th><th>승률</th></tr></thead>
+          <thead><tr><th>Rank</th><th>ID</><th>종족</th><th>티어</th><th>ELO</th><th>승</th><th>패</th><th>승률</th></tr></thead>
           <tbody></tbody>
         </table>
-        <div class="note">* 승/패/승률은 <b>기록실(match)</b>을 기반으로 자동 재계산됩니다. (JSON의 숫자와 달라도 기록이 우선)</div>
+        <div class="note">* 승/패/승률은 <b>기록실(match)</b>을 기반으로 자동 재계산됩니다.</div>
       </div>
     </section>
 
@@ -84,75 +84,72 @@ window.addEventListener('error', e => {
       </div>
     </section>
 
-<section id="elo-info">
-  <div class="card">
-    <h2 style="margin:6px 0;color:var(--accent)">ELO 시스템 설명</h2>
-    <ul>
-      <li>초기 ELO: <b>1000</b></li>
-      <li>개인전 K-계수: <b>24</b> (팀전은 <b>60%</b> 반영)</li>
-      <li>티어 보정 계수: <code>1 + 0.2 × ΔtierIndex</code></li>
-      <li>랭킹 정렬 기준: 현재 ELO (상단 “클랜원 랭킹” 표)</li>
-      <li>승/패/승률: 기록실 데이터를 다시 집계하여 표시 (기록이 우선)</li>
-    </ul>
+    <section id="elo-info">
+      <div class="card">
+        <h2 style="margin:6px 0;color:var(--accent)">ELO 시스템 설명</h2>
+        <ul>
+          <li>초기 ELO: <b>1000</b></li>
+          <li>개인전 K-계수: <b>24</b> (팀전은 <b>60%</b> 반영)</li>
+          <li>티어 보정 계수: <code>1 + 0.2 × ΔtierIndex</code></li>
+          <li>랭킹 정렬 기준: 현재 ELO (상단 “클랜원 랭킹” 표)</li>
+          <li>승/패/승률: 기록실 데이터를 다시 집계하여 표시</li>
+        </ul>
 
-    <div class="muted" style="margin:8px 0 4px">티어 인덱스 예시: Stone 0, Bronze 1, Silver 2, Gold 3, Diamond 4, Legend 5</div>
-    <table style="width:100%;border-collapse:collapse">
-      <thead>
-        <tr>
-          <th style="border-bottom:1px solid rgba(255,255,255,0.1);padding:6px">매치업</th>
-          <th style="border-bottom:1px solid rgba(255,255,255,0.1);padding:6px">ΔtierIndex</th>
-          <th style="border-bottom:1px solid rgba(255,255,255,0.1);padding:6px">보정계수</th>
-          <th style="border-bottom:1px solid rgba(255,255,255,0.1);padding:6px">이겼을 때</th>
-          <th style="border-bottom:1px solid rgba(255,255,255,0.1);padding:6px">졌을 때</th>
-        </tr>
-      </thead>
-      <tbody>
-        <tr><td style="padding:6px">동일 티어 vs 동일 티어</td><td style="padding:6px">0</td><td style="padding:6px">1.0</td><td style="padding:6px">기본 K=24</td><td style="padding:6px">기본 K=24</td></tr>
-        <tr><td style="padding:6px">한 단계↑ vs 한 단계↓</td><td style="padding:6px">+1/-1</td><td style="padding:6px">1.2 / 0.8</td><td style="padding:6px">아랫티어가 이기면 더 크게 +</td><td style="padding:6px">윗티어가 지면 더 크게 -</td></tr>
-        <tr><td style="padding:6px">두 단계↑ vs 두 단계↓</td><td style="padding:6px">+2/-2</td><td style="padding:6px">1.4 / 0.6</td><td style="padding:6px">언더독 승리 시 큰 +</td><td style="padding:6px">강자 패배 시 큰 -</td></tr>
-        <tr><td style="padding:6px">세 단계↑ vs 세 단계↓</td><td style="padding:6px">+3/-3</td><td style="padding:6px">1.6 / 0.4</td><td style="padding:6px">아주 큰 +</td><td style="padding:6px">아주 큰 -</td></tr>
-      </tbody>
-    </table>
-    <div class="note">* 실제 증감은 상대 ELO, 예상승률 등에 따라 달라집니다. 위 표는 보정 계수의 방향성을 설명합니다.</div>
-  </div>
-</section>
+        <div class="muted" style="margin:8px 0 4px">티어 인덱스 예시: Stone 0, Bronze 1, Silver 2, Gold 3, Diamond 4, Legend 5</div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr><th>매치업</th><th>ΔtierIndex</th><th>보정계수</th><th>이겼을 때</th><th>졌을 때</th></tr>
+          </thead>
+          <tbody>
+            <tr><td>동일 티어 vs 동일 티어</td><td>0</td><td>1.0</td><td>기본 K=24</td><td>기본 K=24</td></tr>
+            <tr><td>한 단계↑ vs 한 단계↓</td><td>+1/-1</td><td>1.2 / 0.8</td><td>아랫티어 승리 큰 +</td><td>윗티어 패배 큰 -</td></tr>
+            <tr><td>두 단계↑ vs 두 단계↓</td><td>+2/-2</td><td>1.4 / 0.6</td><td>언더독 큰 +</td><td>강자 큰 -</td></tr>
+            <tr><td>세 단계↑ vs 세 단계↓</td><td>+3/-3</td><td>1.6 / 0.4</td><td>아주 큰 +</td><td>아주 큰 -</td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
 
+    <section id="chart">
+      <div class="card">
+        <h2 style="margin:6px 0;color:var(--accent)">ELO 변동 그래프</h2>
+        <div id="elo-chart" style="width:100%;height:440px"></div>
+      </div>
+    </section>
+  </main>
 
   <script>
-    // 탭 전환
-    document.querySelectorAll('nav .tab').forEach(btn=>{
-      btn.addEventListener('click', e=>{
-        document.querySelectorAll('nav .tab').forEach(b=>b.classList.remove('active'));
-        e.currentTarget.classList.add('active');
-        document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
-        document.getElementById(e.currentTarget.dataset.tab).classList.add('active');
+    // Ceta/Chan 정규화(전역)
+    function normalizeCetaChan(data){
+      const rep = n => (n === 'Chann' ? 'Ceta' : n);
+      data.matches.forEach(m=>{
+        if (m.player1) m.player1 = rep(m.player1);
+        if (m.player2) m.player2 = rep(m.player2);
+        if (Array.isArray(m.team1)) m.team1 = m.team1.map(rep);
+        if (Array.isArray(m.team2)) m.team2 = m.team2.map(rep);
+        if (Array.isArray(m.winner)) m.winner = m.winner.map(rep);
+        else if (typeof m.winner === 'string') m.winner = rep(m.winner);
       });
-    });
-
-    // Recharts 로드 보장
-    function ensureRechartsReady(cb){
-      let t=0; const h=setInterval(()=>{ t++; if(window.Recharts){clearInterval(h); cb();} if(t>60){clearInterval(h);} },100);
-    }
-
-    // Matchday 묶기
-    function groupByMatchday(matches){
-      const groups=[]; let current=null; let md=0;
-      for(const m of matches){
-        if(!current || current.date!==m.date || m.map==='Matchday'){
-          if(m.map==='Matchday'){ md = current && current.date===m.date ? md+1 : 1; current={date:m.date,index:md,header:m,sets:[]}; groups.push(current); }
-          else { if(!current || current.date!==m.date){ md=1; current={date:m.date,index:md,header:null,sets:[]}; groups.push(current); } }
-        }
-        if(m.map==='Matchday'){ current.header=m; } else { current.sets.push(m); }
+      // players 정리
+      let channIdx=data.players.findIndex(p=>p.id==='Chann');
+      let cetaIdx=data.players.findIndex(p=>p.id==='Ceta');
+      if(channIdx!==-1){
+        if(cetaIdx===-1){data.players[channIdx].id='Ceta'; cetaIdx=channIdx;}
+        else data.players.splice(channIdx,1);
       }
-      return groups;
+      // 프로필 보정
+      let ceta=data.players.find(p=>p.id==='Ceta');
+      if(!ceta){ceta={id:'Ceta',race:'Zerg',tier:'Gold',elo:1000,played:0,win:0,loss:0,history:[1000]};data.players.push(ceta);}
+      ceta.race='Zerg'; ceta.tier='Gold';
+      let chan=data.players.find(p=>p.id==='Chan');
+      if(!chan){chan={id:'Chan',race:'Protoss',tier:'Silver',elo:1000,played:0,win:0,loss:0,history:[1000]};data.players.push(chan);}
+      chan.race='Protoss'; chan.tier='Silver';
+      return data;
     }
 
-    // ---- 데이터 고정(수복) 로직 ----
+    // 데이터 수복
     function fixData(data){
-+  // Ceta/Chan 정규화(전역) - 'Chann' 오표를 'Ceta'로 교정 + 프로필 강제 보정
-+  data = normalizeCetaChan(data);
-
-      // 1) Danny -> DanielK 통합 (매치 교체 + players 삭제)
+      data = normalizeCetaChan(data);
       if(data.players.some(p=>p.id==='Danny')){
         data.matches.forEach(m=>{
           const rep = name => (name==='Danny' ? 'DanielK' : name);
@@ -163,255 +160,67 @@ window.addEventListener('error', e => {
           if(Array.isArray(m.winner)) m.winner = m.winner.map(rep);
           if(typeof m.winner==='string') m.winner = rep(m.winner);
         });
-        // players: Danny 제거 (DanielK는 유지)
         data.players = data.players.filter(p=>p.id!=='Danny');
       }
-
-      <script>
-// --- Ceta/Chan 정규화(전역) ---
-function normalizeCetaChan(data){
-  // 1) matches: 'Chann' → 'Ceta'
-  const rep = n => (n === 'Chann' ? 'Ceta' : n);
-
-  data.matches.forEach(m=>{
-    if (m.player1) m.player1 = rep(m.player1);
-    if (m.player2) m.player2 = rep(m.player2);
-
-    if (Array.isArray(m.team1)) m.team1 = m.team1.map(rep);
-    if (Array.isArray(m.team2)) m.team2 = m.team2.map(rep);
-
-    if (Array.isArray(m.winner)) m.winner = m.winner.map(rep);
-    else if (typeof m.winner === 'string') m.winner = rep(m.winner);
-  });
-
-  // 2) players: 'Chann' 엔트리가 있으면 'Ceta'로 개명(merge-safe)
-  let channIdx = data.players.findIndex(p=>p.id==='Chann');
-  let cetaIdx  = data.players.findIndex(p=>p.id==='Ceta');
-
-  if (channIdx !== -1){
-    if (cetaIdx === -1){
-      // 개명
-      data.players[channIdx].id = 'Ceta';
-      cetaIdx = channIdx;
-    } else {
-      // 둘 다 있으면 Chann 제거(기록 집계가 반영해줄 것)
-      data.players.splice(channIdx, 1);
-    }
-  }
-
-  // 3) 프로필 강제 보정
-  // Ceta = Gold / Zerg
-  let ceta = data.players.find(p=>p.id==='Ceta');
-  if (!ceta){
-    ceta = {id:'Ceta', race:'Zerg', tier:'Gold', elo:1000, played:0, win:0, loss:0, history:[1000]};
-    data.players.push(ceta);
-  }
-  ceta.race = 'Zerg';
-  ceta.tier = 'Gold';
-
-  // Chan = Silver / Protoss
-  let chan = data.players.find(p=>p.id==='Chan');
-  if (!chan){
-    chan = {id:'Chan', race:'Protoss', tier:'Silver', elo:1000, played:0, win:0, loss:0, history:[1000]};
-    data.players.push(chan);
-  }
-  chan.race = 'Protoss';
-  chan.tier = 'Silver';
-
-  return data;
-}
-</script>
-
-
-      // 3) 기록으로 승/패/경기수 재집계 (JSON 내부 숫자와 불일치시 기록 우선)
-      const stat = new Map(); // id -> {played, win, loss}
-      function ensure(id){
-        if(!stat.has(id)) stat.set(id,{played:0,win:0,loss:0});
-        return stat.get(id);
-      }
-      function addResult(winners, losers){
-        winners.forEach(id=>{const s=ensure(id); s.played++; s.win++;});
-        losers.forEach(id=>{const s=ensure(id); s.played++; s.loss++;});
-      }
-
-      for(const m of data.matches){
-        if(m.map==='Matchday') continue; // 헤더는 생략
-        // 개인전
-        if(m.player1 && m.player2){
-          const p1=m.player1, p2=m.player2;
-          const w = (typeof m.winner==='string') ? m.winner : null;
-          if(w===p1) addResult([p1],[p2]);
-          else if(w===p2) addResult([p2],[p1]);
-          else { // 승자 정보 없으면 둘 다 played만
-            ensure(p1).played++; ensure(p2).played++;
-          }
-          continue;
-        }
-        // 팀전
-        if(Array.isArray(m.team1) && Array.isArray(m.team2)){
-          const t1=m.team1, t2=m.team2;
-          if(Array.isArray(m.winner)){
-            const wSet = new Set(m.winner);
-            const losers = [];
-            const winners = [];
-            t1.concat(t2).forEach(id=> (wSet.has(id)? winners: losers).push(id));
-            if(winners.length && losers.length) addResult(winners, losers);
-            else { t1.concat(t2).forEach(id=>ensure(id).played++); }
-          }else{
-            // 승자 정보 없으면 played만
-            t1.concat(t2).forEach(id=>ensure(id).played++);
-          }
-        }
-      }
-
-      // players에 반영 (없는 id는 신규 생성)
-      for(const id of stat.keys()){
-        if(!data.players.some(p=>p.id===id)){
-          data.players.push({id, race:'Protoss', tier:'Silver', elo:1000, played:0, win:0, loss:0, history:[1000]});
-        }
-      }
-      data.players.forEach(p=>{
-        const s = stat.get(p.id) || {played:p.played||0, win:p.win||0, loss:p.loss||0};
-        p.played = s.played; p.win = s.win; p.loss = s.loss;
-      });
-
       return data;
     }
 
-    // ---- 데이터 로드 ----
-    function loadJSON(url){
-      return new Promise((resolve,reject)=>{
-        const xhr=new XMLHttpRequest();
-        xhr.open('GET', url, true);
-        xhr.onreadystatechange=()=>{
-          if(xhr.readyState===4){
-            if(xhr.status>=200 && xhr.status<300){
-              try{
-                const data = JSON.parse(xhr.responseText);
-                resolve(data);
-              }catch(e){ console.error('JSON parse error', e); reject(e); }
-            }else{ reject(new Error('HTTP '+xhr.status)); }
-          }
-        };
-        xhr.send();
+    // 탭 전환
+    document.querySelectorAll('nav .tab').forEach(btn=>{
+      btn.addEventListener('click', e=>{
+        document.querySelectorAll('nav .tab').forEach(b=>b.classList.remove('active'));
+        e.currentTarget.classList.add('active');
+        document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+        document.getElementById(e.currentTarget.dataset.tab).classList.add('active');
       });
+    });
+
+    // Matchday 묶기
+    function groupByMatchday(matches){
+      const groups=[]; let current=null; let md=0;
+      for(const m of matches){
+        if(!current || current.date!==m.date || m.map==='Matchday'){
+          if(m.map==='Matchday'){ md=current&&current.date===m.date?md+1:1; current={date:m.date,index:md,header:m,sets:[]}; groups.push(current);}
+          else{ if(!current || current.date!==m.date){md=1; current={date:m.date,index:md,header:null,sets:[]}; groups.push(current);} }
+        }
+        if(m.map==='Matchday') current.header=m; else current.sets.push(m);
+      }
+      return groups;
     }
 
-    function renderAll(data){
-      // 고정/수복 처리
+    // 데이터 로드
+    fetch('data.json',{cache:'no-cache'}).then(r=>r.json()).then(data=>{
       data = fixData(data);
-
-      // Players
       const tbody=document.querySelector('#players-table tbody');
-      const s=document.getElementById('search'); const rf=document.getElementById('raceFilter'); const tf=document.getElementById('tierFilter');
       function render(){
         tbody.innerHTML='';
-        const kw=(s.value||'').toLowerCase(); const race=rf.value; const tier=tf.value;
-        const sorted=[...data.players].sort((a,b)=>b.elo-a.elo).filter(p=>(!kw||p.id.toLowerCase().includes(kw))&&(!race||p.race===race)&&(!tier||p.tier===tier));
+        const sorted=[...data.players].sort((a,b)=>b.elo-a.elo);
         sorted.forEach((p,i)=>{
-          const played=p.played||0, win=p.win||0, loss=p.loss||0, wr=played?((win/played)*100).toFixed(1)+'%':'-';
-          const tr=document.createElement('tr');
-          tr.innerHTML=`
-            <td><span class="rank-badge">${i+1}</span></td>
-            <td>${p.id}</td>
-            <td>${p.race}</td>
-            <td class="tier-${p.tier}">${p.tier}</td>
-            <td>${Math.round(p.elo)}</td>
-            <td>${win}</td>
-            <td>${loss}</td>
-            <td>${wr}</td>`;
-          tbody.appendChild(tr);
+          const played=p.played||0,win=p.win||0,loss=p.loss||0,wr=played?((win/played)*100).toFixed(1)+'%':'-';
+          tbody.innerHTML+=`<tr><td><span class='rank-badge'>${i+1}</span></td><td>${p.id}</td><td>${p.race}</td><td class='tier-${p.tier}'>${p.tier}</td><td>${Math.round(p.elo)}</td><td>${win}</td><td>${loss}</td><td>${wr}</td></tr>`;
         });
-        document.getElementById('counts').textContent = `Players: ${data.players.length} | Matches: ${data.matches.length}`;
+        document.getElementById('counts').textContent=`Players: ${data.players.length} | Matches: ${data.matches.length}`;
       }
-      s.addEventListener('input',render); rf.addEventListener('change',render); tf.addEventListener('change',render); render();
+      render();
 
-      // Records
-      const list = document.getElementById('match-list');
-      list.innerHTML = '';
-      const groups = groupByMatchday([...data.matches].sort((a, b) => a.date.localeCompare(b.date)));
-
-      groups.forEach(g => {
-        const box = document.createElement('div');
-        box.className = 'match';
-
-        const head = document.createElement('div');
-        if (g.header) {
-          const winners = Array.isArray(g.header.winner)
-            ? g.header.winner.join(', ')
-            : (g.header.winner || '-');
-          const score = g.header.score || '-';
-          head.innerHTML = `<b>${g.date}</b> | Matchday | 승자: ${winners} | 스코어: ${score}`;
-        } else {
-          head.innerHTML = `<b>${g.date}</b> | 세트 모음`;
-        }
-
-        const det = document.createElement('div');
-        det.className = 'details';
-        if (!g.sets || g.sets.length === 0) {
-          det.innerHTML = '<div class="muted">세트 기록 없음</div>';
-        } else {
-          det.innerHTML = g.sets.map(
-            s => `<div>${s.map}: ${s.player1 || s.team1} vs ${s.player2 || s.team2} &mdash; 승자: ${s.winner || '-'}</div>`
-          ).join('');
-        }
-
-        box.appendChild(head);
-        box.appendChild(det);
-        box.addEventListener('click', ()=>det.classList.toggle('active'));
+      const list=document.getElementById('match-list');
+      const groups=groupByMatchday([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
+      groups.forEach(g=>{
+        const box=document.createElement('div'); box.className='match';
+        const head=document.createElement('div');
+        if(g.header){
+          const winners=Array.isArray(g.header.winner)?g.header.winner.join(', '):(g.header.winner||'-');
+          const score=g.header.score||'-';
+          head.innerHTML=`<b>${g.date}</b> | Matchday | 승자: ${winners} | 스코어: ${score}`;
+        }else head.innerHTML=`<b>${g.date}</b> | 세트 모음`;
+        const det=document.createElement('div'); det.className='details';
+        if(!g.sets||!g.sets.length) det.innerHTML='<div class="muted">세트 기록 없음</div>';
+        else det.innerHTML=g.sets.map(s=>`<div>${s.map}: ${s.player1||s.team1} vs ${s.player2||s.team2} — 승자: ${s.winner||'-'}</div>`).join('');
+        box.appendChild(head); box.appendChild(det);
+        box.addEventListener('click',()=>det.classList.toggle('active'));
         list.appendChild(box);
       });
-
-      // Chart (top 12 lines)
-      ensureRechartsReady(()=>{
-        try{
-          const {LineChart,Line,XAxis,YAxis,Tooltip,Legend,ResponsiveContainer}=Recharts;
-          const ppl=[...data.players].sort((a,b)=>b.elo-a.elo).slice(0,12);
-          const series={}; ppl.forEach(p=>{ (p.history||[p.elo]).forEach((v,i)=>{ if(!series[i]) series[i]={step:i}; series[i][p.id]=v; }); });
-          const chartData=Object.keys(series).sort((a,b)=>a-b).map(k=>series[k]);
-          const lines=ppl.map((p,i)=>React.createElement(Line,{key:p.id,type:'monotone',dataKey:p.id,stroke:`hsl(${(i*37)%360},70%,60%)`,strokeWidth:2,dot:false}));
-          ReactDOM.render(
-            React.createElement(ResponsiveContainer,{width:'100%',height:400},
-              React.createElement(LineChart,{data:chartData},
-                React.createElement(XAxis,{dataKey:'step'}),
-                React.createElement(YAxis,{}),
-                React.createElement(Tooltip,{}),
-                React.createElement(Legend,{}),
-                ...lines
-              )
-            ),
-            document.getElementById('elo-chart')
-          );
-        }catch(e){ console.error(e); }
-      });
-    }
-
-    // 동일 폴더의 data.json 로드
-    function start(){
-      fetch('data.json',{cache:'no-cache'})
-        .then(r=>r.json())
-        .then(renderAll)
-        .catch(err=>{
-          console.error('데이터 로드 실패(fetch):', err);
-          // XHR fallback
-          const xhr=new XMLHttpRequest();
-          xhr.open('GET', 'data.json', true);
-          xhr.onreadystatechange=()=>{
-            if(xhr.readyState===4){
-              if(xhr.status>=200 && xhr.status<300){
-                try{ renderAll(JSON.parse(xhr.responseText)); }
-                catch(e){ console.error('JSON parse error', e); showErr(e); }
-              }else{ showErr(new Error('HTTP '+xhr.status)); }
-            }
-          };
-          xhr.send();
-        });
-    }
-    function showErr(err){
-      const el=document.createElement('div'); el.className='card'; el.textContent='데이터 로드 실패: '+err;
-      document.querySelector('main').prepend(el);
-    }
-    start();
+    }).catch(e=>console.error('데이터 로드 실패',e));
   </script>
 </body>
 </html>
