@@ -149,10 +149,10 @@
     const rf=document.getElementById('raceFilter');
     const tf=document.getElementById('tierFilter');
 
-    // ✅ ID 대소문자 구분 무시
+    // ✅ ID 대소문자 무시
     const normalize = id => id ? id.trim().toLowerCase() : '';
 
-    // ✅ 중복 방지된 승패 집계 (Match 헤더 제외)
+    // ✅ 정확 승패 집계 (Match 헤더 제외)
     const stat = new Map();
     const ensure = id => {
       const key = normalize(id);
@@ -163,7 +163,6 @@
       losers.forEach(id=>{const s=ensure(id); s.played++; s.loss++;});
     };
 
-    // --- 집계 ---
     for(const m of data.matches){
       if(m.map === "Match") continue;
       if(m.player1 && m.player2){
@@ -184,7 +183,6 @@
       }
     }
 
-    // --- stat 반영 ---
     for(const key of stat.keys()){
       let p = data.players.find(p => p.id.toLowerCase() === key);
       if(!p){
@@ -225,26 +223,27 @@
     tf.addEventListener('change',render);
     render();
 
-    // ✅ 기록실 (날짜별 헤더 + 기본 접힘 상태 + Match 간 줄 간격)
+    // ✅ 기록실 (날짜별 헤더 + 기본 접힘 + Match 사이 간격)
     const list=document.getElementById('match-list');
     list.innerHTML='';
     const groups=groupByDate([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
 
-    groups.forEach((g,i)=>{
+    groups.forEach((g)=>{
       const box=document.createElement('div');
       box.className='match';
+
       const matchCount = g.matches.filter(m => m.map === "Match").length || 0;
       const head=document.createElement('div');
       head.innerHTML=`<b>${g.date}</b> Match ${matchCount}`;
       head.style.cursor='pointer';
 
-      // 기본 접힘 상태
       const det=document.createElement('div');
       det.className='details';
       det.style.display='none';
 
-      // Match 간 한 줄 띄우기
-      const html=g.matches.map((m,idx)=>{
+      // --- Match 헤더와 세트 구분 ---
+      const lines=[];
+      g.matches.forEach((m,idx)=>{
         let s=`• ${m.map} — `;
         if(Array.isArray(m.team1) && Array.isArray(m.team2)){
           s+=`${m.team1.join(', ')} vs ${m.team2.join(', ')}`;
@@ -253,10 +252,13 @@
         }
         s+=` | 승자: ${Array.isArray(m.winner)?m.winner.join(', '):(m.winner||'-')}`;
         if(m.score) s+=` | 스코어: ${m.score}`;
-        // Match 헤더 이후에는 줄 간격 추가
-        return `<div style="margin-bottom:8px">${s}</div>`;
-      }).join('<br>');
-      det.innerHTML=html;
+
+        // 다음 Match 나오기 전에 한 줄만 띄움
+        const isNextMatch = g.matches[idx+1] && g.matches[idx+1].map === "Match";
+        const margin = isNextMatch ? 'margin-bottom:12px;' : '';
+        lines.push(`<div style="${margin}">${s}</div>`);
+      });
+      det.innerHTML=lines.join('');
 
       head.addEventListener('click',()=>{
         det.style.display = (det.style.display==='none') ? 'block' : 'none';
