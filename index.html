@@ -28,6 +28,9 @@
     tr:hover{background:rgba(255,255,255,0.03)}
     .tier-Stone{color:#8b8b8b}.tier-Bronze{color:#cd7f32}.tier-Silver{color:#c0c0c0}.tier-Gold{color:#ffd700}.tier-Diamond{color:#67e8f9}.tier-Legend{color:#ff7f50}
     .muted{color:var(--muted)}
+    .match{border:1px solid rgba(255,255,255,0.08);padding:10px;border-radius:10px;background:rgba(255,255,255,0.02);margin-bottom:10px;cursor:pointer}
+    .details{display:none;margin-top:8px;font-size:14px;color:#ddd}
+    .details.active{display:block}
     .filters{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:8px}
     .filters > *{flex:1 1 160px}
     .rank-badge{background:#252532;border:1px solid #2f3140;border-radius:8px;padding:2px 8px;font-weight:700;display:inline-block;margin-right:6px}
@@ -76,20 +79,82 @@
         <div id="match-list"></div>
       </div>
     </section>
+<section id="elo-info">
+  <div class="card">
+    <h2 style="margin:6px 0;color:var(--accent)">ELO 시스템 설명</h2>
 
-    <section id="elo-info">
-      <div class="card">
-        <h2 style="margin:6px 0;color:var(--accent)">ELO 시스템 설명</h2>
-        <p style="line-height:1.6;color:#ddd">모든 계산은 match 데이터를 기반으로 자동 수행됩니다.</p>
-      </div>
-    </section>
+    <p style="line-height:1.6;color:#ddd">
+      RockClan의 ELO 시스템은 단순한 점수 차이뿐 아니라 <b>티어(Tier) 보정</b>을 포함하여 실제 실력 격차를 반영합니다.<br>
+      모든 계산은 기록실(match) 데이터를 기반으로 자동 수행됩니다.
+    </p>
 
-    <section id="chart">
-      <div class="card">
-        <h2 style="margin:6px 0;color:var(--accent)">ELO 변동 그래프</h2>
-        <div class="muted">계산된 match 기반 ELO 변화 그래프를 표시합니다.</div>
-      </div>
-    </section>
+    <ul style="line-height:1.8;color:#ccc;margin-left:12px">
+      <li><b>초기 ELO</b>: 신규 플레이어는 1000점으로 시작합니다.</li>
+      <li><b>K 값</b>:
+        <ul>
+          <li>개인전(1:1): <b>K = 12</b></li>
+          <li>팀전(2:2, 3:3, 4:4 등): <b>K = 8</b></li>
+        </ul>
+      </li>
+      <li><b>티어 인덱스 보정</b>:
+        <ul>
+          <li>Stone=0, Bronze=1, Silver=2, Gold=3, Diamond=4, Legend=5</li>
+          <li>실제 계산은 <code>EffectiveElo = ELO + (TierIndex × 40)</code> 으로 수행됩니다.</li>
+        </ul>
+      </li>
+      <li>예상 승률은 두 플레이어의 <b>EffectiveElo</b> 차이를 기준으로 계산됩니다.</li>
+      <li>경기 결과는 예상 승률 대비 실제 승패 차이만큼 ELO가 변동합니다.</li>
+    </ul>
+
+    <h3 style="margin-top:16px;color:var(--accent)">📈 ELO 계산 예시</h3>
+    <table style="width:100%;border-collapse:collapse;margin-top:8px;font-size:14px;color:#ddd">
+      <thead>
+        <tr style="background:rgba(255,255,255,0.05)">
+          <th style="padding:6px;border:1px solid rgba(255,255,255,0.1)">상황</th>
+          <th style="padding:6px;border:1px solid rgba(255,255,255,0.1)">ELO 차이</th>
+          <th style="padding:6px;border:1px solid rgba(255,255,255,0.1)">티어 차이</th>
+          <th style="padding:6px;border:1px solid rgba(255,255,255,0.1)">예상 승률</th>
+          <th style="padding:6px;border:1px solid rgba(255,255,255,0.1)">승리 시</th>
+          <th style="padding:6px;border:1px solid rgba(255,255,255,0.1)">패배 시</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">1:1 (동티어, 동일 ELO)</td>
+          <td>0</td><td>0</td><td>50%</td><td>+6</td><td>−6</td>
+        </tr>
+        <tr>
+          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">Silver(2) vs Gold(3), 동점</td>
+          <td>0</td><td>+1</td><td>46%</td><td>+7</td><td>−5</td>
+        </tr>
+        <tr>
+          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">Gold(3) vs Silver(2), 동점</td>
+          <td>0</td><td>−1</td><td>54%</td><td>+5</td><td>−7</td>
+        </tr>
+        <tr>
+          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">팀전 (평균 동티어)</td>
+          <td>0</td><td>0</td><td>50%</td><td>+4</td><td>−4</td>
+        </tr>
+        <tr>
+          <td style="padding:6px;border:1px solid rgba(255,255,255,0.1)">팀전 (상대팀 평균 Diamond↑)</td>
+          <td>−150</td><td>+2</td><td>32%</td><td>+6</td><td>−3</td>
+        </tr>
+      </tbody>
+    </table>
+
+    <p style="margin-top:10px;color:#999">
+      ※ ELO 계산식: <code>NewElo = OldElo + K × (Actual − Expected)</code><br>
+      ※ 티어 인덱스 보정으로 인해 상위 티어를 이길 경우 상승폭이 더 커집니다.
+    </p>
+  </div>
+</section>
+<section id="chart">
+  <div class="card">
+    <h2 style="margin:6px 0;color:var(--accent)">ELO 변동 그래프</h2>
+    <div class="muted">그래프는 추후 추가 예정입니다.</div>
+  </div>
+</section>
+    
   </main>
 
 <script>
@@ -103,30 +168,75 @@
     });
   });
 
+  // --- 데이터 로드 ---
   function start(){
-    const safeLoad=url=>fetch(url,{cache:'no-cache'}).then(r=>r.ok?r.json():{players:[],matches:[]}).catch(()=>({players:[],matches:[]}));
-    Promise.all([safeLoad('data.json'),safeLoad('data_oct.json')])
-      .then(([base,oct])=>{
-        base.matches=(base.matches||[]).concat(oct.matches||[]);
-        const seen=new Set((base.players||[]).map(p=>p.id));
-        (oct.players||[]).forEach(p=>{if(!seen.has(p.id))base.players.push(p);});
-        renderAll(base);
-      })
-      .catch(e=>console.error('로드 실패',e));
+    const safeLoad = (url) =>
+      fetch(url, { cache: 'no-cache' })
+        .then(r => r.ok ? r.json() : { players: [], matches: [] })
+        .catch(() => ({ players: [], matches: [] })); // 실패해도 빈 셋으로
+
+    Promise.all([
+      safeLoad('data.json'),
+      safeLoad('data_oct.json')
+    ])
+    .then(([base, oct]) => {
+      // matches 합치기
+      base.matches = (base.matches || []).concat(oct.matches || []);
+
+      // players 합치기 (id 기준 중복 제거)
+      const seen = new Set((base.players || []).map(p => p.id));
+      (oct.players || []).forEach(p => { if (!seen.has(p.id)) base.players.push(p); });
+
+      renderAll(base);
+    })
+    .catch(e => console.error('로드 실패', e));
   }
 
-  const getTierIndex=t=>['Stone','Bronze','Silver','Gold','Diamond','Legend'].indexOf(t)||0;
 
+  // --- 날짜 & Match 기준 그룹화 ---
+  function groupByMatch(matches){
+    const groups=[];
+    let current=null;
+    let currentDate='';
+    let idx=0;
+    for(const m of matches){
+      const key=m.date;
+      const isHeader=(m.map==='Match');
+      if(!current||currentDate!==key||isHeader){
+        if(isHeader){
+          idx=(current&&currentDate===key)?idx+1:1;
+          current={date:m.date,index:idx,header:m,sets:[]};
+          groups.push(current);
+        }else{
+          if(!current||currentDate!==key){
+            idx=1;
+            current={date:m.date,index:idx,header:null,sets:[]};
+            groups.push(current);
+          }
+        }
+        currentDate=key;
+      }
+      if(isHeader){ current.header=m; } else { current.sets.push(m); }
+    }
+    return groups;
+  }
+
+  // --- 티어 인덱스 함수 (티어 보정용) ---
+  function getTierIndex(tier){
+    const order=['Stone','Bronze','Silver','Gold','Diamond','Legend'];
+    return Math.max(0,order.indexOf(tier));
+  }
+
+  // --- 렌더링 ---
   function renderAll(data){
-    const stat=new Map();
-    const ensure=id=>stat.get(id)||stat.set(id,{played:0,win:0,loss:0,elo:1000,tier:'Silver'}).get(id);
+    const tbody=document.querySelector('#players-table tbody');
+    const s=document.getElementById('search');
+    const rf=document.getElementById('raceFilter');
+    const tf=document.getElementById('tierFilter');
 
-    // ✅ [ADD] ELO 변동 이력 기록용
-    const eloHistory={};
-    const pushHistory=(id,elo)=>{
-      if(!eloHistory[id]) eloHistory[id]=[elo];
-      else eloHistory[id].push(elo);
-    };
+    // ✅ 중복 없는 승패/ELO 계산
+    const stat=new Map();
+    const ensure=id=>stat.get(id)||stat.set(id,{played:0,win:0,loss:0,elo:1000}).get(id);
 
     const calcEloChange=(A,B,result,isTeam)=>{
       const K=isTeam?8:12;
@@ -134,114 +244,123 @@
       const effB=B.elo+getTierIndex(B.tier)*40;
       const expectedA=1/(1+Math.pow(10,(effB-effA)/400));
       const delta=K*(result-expectedA);
-      A.elo+=delta; B.elo-=delta;
+      A.elo+=delta;
+      B.elo-=delta;
     };
 
-    for(const m of data.matches){
-      if(m.map==='Match') continue;
+for (const m of data.matches) {
+  if (m.map === 'Match') continue;
 
-      if(m.player1&&m.player2){
-        const p1=ensure(m.player1), p2=ensure(m.player2);
-        if(m.winner===m.player1){calcEloChange(p1,p2,1,false);p1.win++;p2.loss++;}
-        else if(m.winner===m.player2){calcEloChange(p1,p2,0,false);p2.win++;p1.loss++;}
-        p1.played++; p2.played++;
-        // ✅ [ADD] 경기 후 ELO 이력 기록
-        pushHistory(m.player1,p1.elo);
-        pushHistory(m.player2,p2.elo);
-        continue;
-      }
+  // 1:1
+  if (m.player1 && m.player2) {
+    const p1 = ensure(m.player1), p2 = ensure(m.player2);
+    const w = m.winner;
 
-      if(Array.isArray(m.team1)&&Array.isArray(m.team2)){
-        const team1=m.team1.map(id=>ensure(id));
-        const team2=m.team2.map(id=>ensure(id));
-        const win1=(m.winner||[]).some(x=>m.team1.includes(x));
-        const resultA=win1?1:0;
-        const avgA=team1.reduce((a,b)=>a+b.elo,0)/team1.length;
-        const avgB=team2.reduce((a,b)=>a+b.elo,0)/team2.length;
-        const dummyA={elo:avgA,tier:'Silver'}, dummyB={elo:avgB,tier:'Silver'};
-        calcEloChange(dummyA,dummyB,resultA,true);
-        const diffA=dummyA.elo-avgA, diffB=dummyB.elo-avgB;
-        team1.forEach(p=>{p.elo+=diffA;p.played++;if(resultA)p.win++;else p.loss++;pushHistory(p.id,p.elo);});
-        team2.forEach(p=>{p.elo+=diffB;p.played++;if(!resultA)p.win++;else p.loss++;pushHistory(p.id,p.elo);});
-      }
-    }
+    if (w === m.player1) { 
+      calcEloChange(p1, p2, 1, false); 
+      p1.win++; p2.loss++; 
+    } else if (w === m.player2) { 
+      calcEloChange(p1, p2, 0, false); 
+      p2.win++; p1.loss++; 
+    } 
+    // 무승부(없다고 하셨지만 혹시 모를 케이스): 승패만 생략
 
-    // ✅ [ADD] 모든 계산 후 그래프 호출
-    renderEloChart(eloHistory);
+    // ✅ played는 **딱 한 번씩만** 증가
+    p1.played++; 
+    p2.played++;
+    continue;
   }
 
-  // ✅ [ADD] 멀티 비교 그래프 함수
-  function renderEloChart(eloHistory){
-    const container=document.getElementById("chart");
-    if(!container) return;
-    let mount=document.getElementById("eloChartMount");
-    if(!mount){
-      mount=document.createElement("div");
-      mount.id="eloChartMount";
-      mount.style.marginTop="10px";
-      container.querySelector(".card")?.appendChild(mount);
-    }
-    mount.innerHTML=`
-      <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
-        <div>
-          <div style="font-size:13px;color:#aaa;margin-bottom:6px">비교할 플레이어 선택 (Ctrl/⌘ 로 다중 선택)</div>
-          <select id="eloPlayerSelect" multiple size="10"
-            style="min-width:220px;height:200px;padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
-            ${Object.keys(eloHistory).sort().map(id=>`<option value="${id}">${id}</option>`).join("")}
-          </select>
-        </div>
-        <div id="eloChartArea" style="flex:1;min-width:320px;width:100%;height:460px"></div>
-      </div>
-    `;
+  // 팀전
+  if (Array.isArray(m.team1) && Array.isArray(m.team2)) {
+    const team1 = m.team1.map(id => ensure(id));
+    const team2 = m.team2.map(id => ensure(id));
 
-    const {LineChart,Line,XAxis,YAxis,CartesianGrid,Tooltip,Legend,ResponsiveContainer}=Recharts;
-    const palette=["#ff6a00","#4ade80","#60a5fa","#f472b6","#facc15","#38bdf8","#a78bfa","#fb923c","#22d3ee","#94a3b8","#ef4444","#10b981","#3b82f6","#eab308","#8b5cf6"];
+    // 평균 ELO + 평균 티어 보정
+    const avg1 = team1.reduce((a,b)=>a+b.elo,0)/team1.length;
+    const avg2 = team2.reduce((a,b)=>a+b.elo,0)/team2.length;
+    const avgTier1 = team1.reduce((a,b)=>a+getTierIndex(b.tier),0)/team1.length;
+    const avgTier2 = team2.reduce((a,b)=>a+getTierIndex(b.tier),0)/team2.length;
+    const effective1 = avg1 + avgTier1*40;
+    const effective2 = avg2 + avgTier2*40;
 
-    function draw(selectedIds){
-      const area=document.getElementById("eloChartArea");
-      if(!selectedIds||selectedIds.length===0){
-        area.innerHTML=`<div class="muted">왼쪽 목록에서 1명 이상 선택하면 비교 그래프가 표시됩니다.</div>`;
-        return;
-      }
-      const maxLen=Math.max(...selectedIds.map(id=>(eloHistory[id]?.length||0)));
-      const rows=Array.from({length:maxLen},(_,i)=>{
-        const row={game:i};
-        selectedIds.forEach(id=>{row[id]=(eloHistory[id]||[])[i]??null;});
-        return row;
+    const expected1 = 1/(1+Math.pow(10,(effective2 - effective1)/400));
+    const winners = Array.isArray(m.winner) ? m.winner : [];
+    const result1 = winners.some(id => m.team1.includes(id)) ? 1 : 0;
+    const K = 8;
+    const delta = K * (result1 - expected1);
+
+    team1.forEach(p => { p.elo += delta; (result1 ? p.win++ : p.loss++); p.played++; });
+    team2.forEach(p => { p.elo -= delta; (!result1 ? p.win++ : p.loss++); p.played++; });
+  }
+}
+
+    // --- 표 렌더링 ---
+    function render(){
+      tbody.innerHTML='';
+      const kw=(s.value||'').toLowerCase(),race=rf.value,tier=tf.value;
+      const sorted=[...stat.keys()].map(id=>{
+        const sdata=stat.get(id);
+        const p=data.players.find(p=>p.id===id)||{id,race:'Protoss',tier:'Silver'};
+        return {...p,...sdata};
+      }).sort((a,b)=>b.elo-a.elo)
+      .filter(p=>(!kw||p.id.toLowerCase().includes(kw))&&(!race||p.race===race)&&(!tier||p.tier===tier));
+
+      sorted.forEach((p,i)=>{
+        const wr=p.played?((p.win/p.played)*100).toFixed(1)+'%':'-';
+        const tr=document.createElement('tr');
+        tr.innerHTML=`
+          <td><span class="rank-badge">${i+1}</span></td>
+          <td>${p.id}</td>
+          <td>${p.race}</td>
+          <td class="tier-${p.tier}">${p.tier}</td>
+          <td>${Math.round(p.elo)}</td>
+          <td>${p.win}</td>
+          <td>${p.loss}</td>
+          <td>${wr}</td>`;
+        tbody.appendChild(tr);
       });
-      ReactDOM.render(
-        React.createElement(
-          ResponsiveContainer,{width:"100%",height:460},
-          React.createElement(
-            LineChart,{data:rows,margin:{top:20,right:30,left:0,bottom:0}},
-            React.createElement(CartesianGrid,{strokeDasharray:"3 3",stroke:"rgba(255,255,255,0.12)"}),
-            React.createElement(XAxis,{dataKey:"game",stroke:"#aaa",tick:{fontSize:12}}),
-            React.createElement(YAxis,{stroke:"#aaa",tick:{fontSize:12}}),
-            React.createElement(Tooltip,{contentStyle:{backgroundColor:"#1a1a22",border:"1px solid #333"}}),
-            React.createElement(Legend,null),
-            ...selectedIds.map((id,idx)=>
-              React.createElement(Line,{
-                key:id,
-                type:"monotone",
-                dataKey:id,
-                name:id,
-                stroke:palette[idx%palette.length],
-                dot:false,
-                strokeWidth:2,
-                isAnimationActive:false
-              })
-            )
-          )
-        ),area);
+      document.getElementById('counts').textContent=`Players: ${sorted.length} | Matches: ${data.matches.length}`;
     }
-    const select=document.getElementById("eloPlayerSelect");
-    select.addEventListener("change",()=>{
-      const selected=Array.from(select.selectedOptions).map(o=>o.value);
-      draw(selected);
+    s.addEventListener('input',render);
+    rf.addEventListener('change',render);
+    tf.addEventListener('change',render);
+    render();
+
+    // --- 기록실 ---
+    const list=document.getElementById('match-list');
+    list.innerHTML='';
+    const groups=groupByMatch([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
+    groups.forEach(g=>{
+      const box=document.createElement('div');
+      box.className='match';
+      const head=document.createElement('div');
+      if(g.header){
+        const w=Array.isArray(g.header.winner)?g.header.winner.join(', '):(g.header.winner||'-');
+        const score=g.header.score||'-';
+        head.innerHTML=`<b>${g.date}</b> | Match ${g.index} | 승자: ${w} | 스코어: ${score}`;
+      }else head.innerHTML=`<b>${g.date}</b> | Match ${g.index}`;
+      const det=document.createElement('div');
+      det.className='details';
+      if(!g.sets||!g.sets.length){ det.innerHTML='<div class="muted">세트 기록 없음</div>'; }
+      else g.sets.forEach(m=>{
+        const row=document.createElement('div');
+        let s=`• ${m.map} — `;
+        if(Array.isArray(m.team1)&&Array.isArray(m.team2)) s+=`${m.team1.join(', ')} vs ${m.team2.join(', ')}`;
+        else if(m.player1&&m.player2) s+=`${m.player1} vs ${m.player2}`;
+        s+=` | 승자: ${Array.isArray(m.winner)?m.winner.join(', '):(m.winner||'-')}`;
+        if(m.score) s+=` | 스코어: ${m.score}`;
+        row.textContent=s;
+        det.appendChild(row);
+      });
+      box.appendChild(head);
+      box.appendChild(det);
+      box.addEventListener('click',()=>det.classList.toggle('active'));
+      list.appendChild(box);
     });
   }
-
   start();
 </script>
+
 </body>
 </html>
