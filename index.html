@@ -79,6 +79,38 @@
         <div id="match-list"></div>
       </div>
     </section>
+        <section id="elo-info">
+      <div class="card">
+        <h2 style="margin:6px 0;color:var(--accent)">ELO 시스템 설명</h2>
+        <ul>
+          <li>초기 ELO: <b>1000</b></li>
+          <li>개인전 K-계수: <b>24</b> (팀전은 <b>60%</b> 반영)</li>
+          <li>티어 보정 계수: <code>1 + 0.2 × ΔtierIndex</code></li>
+          <li>랭킹 정렬 기준: 현재 ELO (상단 “클랜원 랭킹” 표)</li>
+          <li>승/패/승률: 기록실 데이터를 다시 집계하여 표시 (기록이 우선)</li>
+        </ul>
+
+        <div class="muted" style="margin:8px 0 4px">티어 인덱스 예시: Stone 0, Bronze 1, Silver 2, Gold 3, Diamond 4, Legend 5</div>
+        <table style="width:100%;border-collapse:collapse">
+          <thead>
+            <tr>
+              <th style="border-bottom:1px solid rgba(255,255,255,0.1);padding:6px">매치업</th>
+              <th style="border-bottom:1px solid rgba(255,255,255,0.1);padding:6px">ΔtierIndex</th>
+              <th style="border-bottom:1px solid rgba(255,255,255,0.1);padding:6px">보정계수</th>
+              <th style="border-bottom:1px solid rgba(255,255,255,0.1);padding:6px">이겼을 때</th>
+              <th style="border-bottom:1px solid rgba(255,255,255,0.1);padding:6px">졌을 때</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr><td style="padding:6px">동일 티어 vs 동일 티어</td><td style="padding:6px">0</td><td style="padding:6px">1.0</td><td style="padding:6px">기본 K=24</td><td style="padding:6px">기본 K=24</td></tr>
+            <tr><td style="padding:6px">한 단계↑ vs 한 단계↓</td><td style="padding:6px">+1/-1</td><td style="padding:6px">1.2 / 0.8</td><td style="padding:6px">아랫티어가 이기면 더 크게 +</td><td style="padding:6px">윗티어가 지면 더 크게 -</td></tr>
+            <tr><td style="padding:6px">두 단계↑ vs 두 단계↓</td><td style="padding:6px">+2/-2</td><td style="padding:6px">1.4 / 0.6</td><td style="padding:6px">언더독 승리 시 큰 +</td><td style="padding:6px">강자 패배 시 큰 -</td></tr>
+            <tr><td style="padding:6px">세 단계↑ vs 세 단계↓</td><td style="padding:6px">+3/-3</td><td style="padding:6px">1.6 / 0.4</td><td style="padding:6px">아주 큰 +</td><td style="padding:6px">아주 큰 -</td></tr>
+          </tbody>
+        </table>
+        <div class="note">* 실제 증감은 상대 ELO, 예상승률 등에 따라 달라집니다. 위 표는 보정 계수의 방향성을 설명합니다.</div>
+      </div>
+    </section>
   </main>
 
 <script>
