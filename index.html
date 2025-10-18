@@ -263,7 +263,7 @@ window.addEventListener('error', e => {
             <td>${wr}</td>`;
           tbody.appendChild(tr);
         });
-        document.getElementById('counts').textContent=\`Players: \${data.players.length} | Matches: \${data.matches.length}\`;
+        document.getElementById('counts').textContent = `Players: ${data.players.length} | Matches: ${data.matches.length}`;
       }
       s.addEventListener('input',render); rf.addEventListener('change',render); tf.addEventListener('change',render); render();
 
@@ -293,7 +293,7 @@ window.addEventListener('error', e => {
           det.innerHTML = '<div class="muted">세트 기록 없음</div>';
         } else {
           det.innerHTML = g.sets.map(
-            s => `<div>${s.map}: ${s.player1 || s.team1} vs ${s.player2 || s.team2} — 승자: ${s.winner || '-'}</div>`
+            s => `<div>${s.map}: ${s.player1 || s.team1} vs ${s.player2 || s.team2} &mdash; 승자: ${s.winner || '-'}</div>`
           ).join('');
         }
 
