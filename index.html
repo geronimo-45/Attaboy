@@ -163,12 +163,26 @@
   });
 
   // --- 데이터 로드 ---
-  function start(){
-    fetch('data.json',{cache:'no-cache'})
-      .then(r=>r.json())
-      .then(renderAll)
-      .catch(e=>console.error('로드 실패',e));
-  }
+function start(){
+  Promise.all([
+    fetch('data.json',{cache:'no-cache'}).then(r=>r.json()),
+    fetch('data_oct.json',{cache:'no-cache'}).then(r=>r.json())
+  ])
+  .then(([base, oct])=>{
+    // matches 합치기
+    base.matches = (base.matches || []).concat(oct.matches || []);
+    
+    // players 합치기 (중복 제거)
+    const ids = new Set(base.players.map(p=>p.id));
+    for(const p of oct.players){
+      if(!ids.has(p.id)) base.players.push(p);
+    }
+
+    renderAll(base);
+  })
+  .catch(e=>console.error('로드 실패', e));
+}
+
 
   // --- 날짜 & Match 기준 그룹화 ---
   function groupByMatch(matches){
