@@ -149,10 +149,10 @@
     const rf=document.getElementById('raceFilter');
     const tf=document.getElementById('tierFilter');
 
-    // ✅ 대소문자 무시용 ID 정규화
+    // ✅ ID 대소문자 구분 무시
     const normalize = id => id ? id.trim().toLowerCase() : '';
 
-    // ✅ 정확 모드 승패 재집계 (중복 방지 + Match 제외)
+    // ✅ 중복 방지된 승패 집계 (Match 헤더 제외)
     const stat = new Map();
     const ensure = id => {
       const key = normalize(id);
@@ -165,7 +165,7 @@
 
     // --- 집계 ---
     for(const m of data.matches){
-      if(m.map === "Match") continue; // Match 헤더는 집계 제외
+      if(m.map === "Match") continue;
       if(m.player1 && m.player2){
         const p1=m.player1, p2=m.player2, w=m.winner;
         if(w===p1) add([p1],[p2]);
@@ -225,26 +225,26 @@
     tf.addEventListener('change',render);
     render();
 
-    // ✅ 기록실 (날짜별 헤더 복원)
+    // ✅ 기록실 (날짜별 헤더 + 기본 접힘 상태 + Match 간 줄 간격)
     const list=document.getElementById('match-list');
     list.innerHTML='';
     const groups=groupByDate([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
 
-    groups.forEach(g=>{
+    groups.forEach((g,i)=>{
       const box=document.createElement('div');
       box.className='match';
-
-      // 날짜별 Match 개수 (map === "Match" 기준)
       const matchCount = g.matches.filter(m => m.map === "Match").length || 0;
-
-      // 헤더: "2025-09-01 Match 2"
       const head=document.createElement('div');
       head.innerHTML=`<b>${g.date}</b> Match ${matchCount}`;
+      head.style.cursor='pointer';
+
+      // 기본 접힘 상태
       const det=document.createElement('div');
       det.className='details';
+      det.style.display='none';
 
-      // 세트 목록
-      det.innerHTML=g.matches.map((m,idx)=>{
+      // Match 간 한 줄 띄우기
+      const html=g.matches.map((m,idx)=>{
         let s=`• ${m.map} — `;
         if(Array.isArray(m.team1) && Array.isArray(m.team2)){
           s+=`${m.team1.join(', ')} vs ${m.team2.join(', ')}`;
@@ -253,12 +253,17 @@
         }
         s+=` | 승자: ${Array.isArray(m.winner)?m.winner.join(', '):(m.winner||'-')}`;
         if(m.score) s+=` | 스코어: ${m.score}`;
-        return `<div style="margin-bottom:4px">${s}</div>`;
-      }).join('');
+        // Match 헤더 이후에는 줄 간격 추가
+        return `<div style="margin-bottom:8px">${s}</div>`;
+      }).join('<br>');
+      det.innerHTML=html;
+
+      head.addEventListener('click',()=>{
+        det.style.display = (det.style.display==='none') ? 'block' : 'none';
+      });
 
       box.appendChild(head);
       box.appendChild(det);
-      box.addEventListener('click',()=>det.classList.toggle('active'));
       list.appendChild(box);
     });
   }
