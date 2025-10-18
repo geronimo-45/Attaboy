@@ -268,26 +268,38 @@ window.addEventListener('error', e => {
       s.addEventListener('input',render); rf.addEventListener('change',render); tf.addEventListener('change',render); render();
 
       // Records
-      const list=document.getElementById('match-list');
-      list.innerHTML='';
-      const groups=groupByMatchday([...data.matches].sort((a,b)=>a.date.localeCompare(b.date)));
-      groups.forEach(g=>{
-        const box=document.createElement('div'); box.className='match';
-        const head=document.createElement('div');
-        head.innerHTML = g.header ? `<b>${g.date}</b> | Matchday | 승자: ${Array.isArray(g.header.winner)? g.header.winner.join(', '): (g.header.winner||'-')} | 스코어: ${g.header.score||'-'}` : `<b>${g.date}</b> | 세트 모음`;
-        const det=document.createElement('div'); det.className='details';
-        if(g.sets.length===0){ det.innerHTML='<div class="muted">세트 기록 없음</div>'; }
-        else {
-          g.sets.forEach(m=>{
-            const row=document.createElement('div');
-            let s=`• ${m.map} — `;
-            if(m.team1 && m.team2){ s+=`${m.team1.join(', ')} vs ${m.team2.join(', ')}`; if(m.winner) s+=` | 승자: ${Array.isArray(m.winner)? m.winner.join(', '): m.winner}`; }
-            else if(m.player1 && m.player2){ s+=`${m.player1} vs ${m.player2}`; if(m.winner) s+=` | 승자: ${m.winner}`; }
-            if(m.score) s+=` | 스코어: ${m.score}`;
-            row.textContent=s; det.appendChild(row);
-          });
+      const list = document.getElementById('match-list');
+      list.innerHTML = '';
+      const groups = groupByMatchday([...data.matches].sort((a, b) => a.date.localeCompare(b.date)));
+
+      groups.forEach(g => {
+        const box = document.createElement('div');
+        box.className = 'match';
+
+        const head = document.createElement('div');
+        if (g.header) {
+          const winners = Array.isArray(g.header.winner)
+            ? g.header.winner.join(', ')
+            : (g.header.winner || '-');
+          const score = g.header.score || '-';
+          head.innerHTML = `<b>${g.date}</b> | Matchday | 승자: ${winners} | 스코어: ${score}`;
+        } else {
+          head.innerHTML = `<b>${g.date}</b> | 세트 모음`;
         }
-        box.appendChild(head); box.appendChild(det); box.addEventListener('click',()=>det.classList.toggle('active')); list.appendChild(box);
+
+        const det = document.createElement('div');
+        det.className = 'details';
+        if (!g.sets || g.sets.length === 0) {
+          det.innerHTML = '<div class="muted">세트 기록 없음</div>';
+        } else {
+          det.innerHTML = g.sets.map(
+            s => `<div>${s.map}: ${s.player1 || s.team1} vs ${s.player2 || s.team2} — 승자: ${s.winner || '-'}</div>`
+          ).join('');
+        }
+
+        box.appendChild(head);
+        box.appendChild(det);
+        list.appendChild(box);
       });
 
       // Chart (top 12 lines)
