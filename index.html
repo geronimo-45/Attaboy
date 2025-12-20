@@ -229,14 +229,26 @@
         </div>
 
         <div class="filters" style="margin-top:12px">
-          <input id="h2hP1" placeholder="Player#1 ID (필수)" style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
-          <input id="h2hP2" placeholder="Player#2 ID (선택)" style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
-          <button id="h2hSearchBtn" style="padding:10px 14px;border:none;border-radius:10px;background:var(--accent);color:#111;cursor:pointer;flex:0 0 auto">조회</button>
-          <button id="h2hClearBtn" style="padding:10px 14px;border:1px solid #232532;border-radius:10px;background:#1a1a22;color:#ddd;cursor:pointer;flex:0 0 auto">초기화</button>
-        </div>
+<select id="h2hP1"
+  style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
+  <option value="">Player#1 선택 (필수)</option>
+</select>
 
-        <!-- 자동완성 -->
-        <datalist id="h2hIds"></datalist>
+<select id="h2hP2"
+  style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
+  <option value="">Player#2 선택 (선택)</option>
+</select>
+
+<button id="h2hSearchBtn"
+  style="padding:10px 14px;border:none;border-radius:10px;background:var(--accent);color:#111;cursor:pointer;flex:0 0 auto">
+  조회
+</button>
+
+<button id="h2hClearBtn"
+  style="padding:10px 14px;border:1px solid #232532;border-radius:10px;background:#1a1a22;color:#ddd;cursor:pointer;flex:0 0 auto">
+  초기화
+</button>
+
 
         <div id="h2hResult" style="margin-top:12px"></div>
       </div>
@@ -525,14 +537,14 @@ tabsWrap.addEventListener('click', (e)=>{
 
   // ===== 상대 전적 조회 구현 =====
   function renderHeadToHead(data, matches, playersMeta){
-    const $p1 = document.getElementById('h2hP1');
-    const $p2 = document.getElementById('h2hP2');
-    const $btn = document.getElementById('h2hSearchBtn');
-    const $clr = document.getElementById('h2hClearBtn');
-    const $out = document.getElementById('h2hResult');
-    const $dl  = document.getElementById('h2hIds');
+const $p1 = document.getElementById('h2hP1');
+const $p2 = document.getElementById('h2hP2');
+const $btn = document.getElementById('h2hSearchBtn');
+const $clr = document.getElementById('h2hClearBtn');
+const $out = document.getElementById('h2hResult');
 
-    if(!$p1 || !$p2 || !$btn || !$out || !$dl) return;
+if(!$p1 || !$p2 || !$btn || !$out) return;
+
 
     const HIDE = new Set(['Wonder','ceta']);
 
