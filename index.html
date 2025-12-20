@@ -61,6 +61,7 @@
     <button class="tab" data-tab="elo-info">ELO 시스템 설명</button>
     <button class="tab" data-tab="h2h">상대 전적 조회</button>
   </nav>
+
 <!-- 🔹 플레이어 히스토리 팝업 -->
 <div id="playerModal" class="modal" style="position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.6);padding-top:60px;display:none;">
   <div class="modal-content" style="background:#1a1a22;margin:auto;padding:20px;border-radius:12px;width:85%;max-height:80%;overflow-y:auto;color:#eee;box-shadow:0 0 20px rgba(0,0,0,.6)">
@@ -219,7 +220,6 @@
   </div>
 </section>
 
-
     <!-- 상대 전적 조회 -->
     <section id="h2h">
       <div class="card">
@@ -229,26 +229,18 @@
         </div>
 
         <div class="filters" style="margin-top:12px">
-<select id="h2hP1"
-  style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
-  <option value="">Player#1 선택 (필수)</option>
-</select>
+          <!-- ✅ (변경) input -> select : 랭킹의 드롭다운 스타일과 동일 -->
+          <select id="h2hP1" style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
+            <option value="">Player#1 선택 (필수)</option>
+          </select>
 
-<select id="h2hP2"
-  style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
-  <option value="">Player#2 선택 (선택)</option>
-</select>
+          <select id="h2hP2" style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
+            <option value="">Player#2 선택 (선택)</option>
+          </select>
 
-<button id="h2hSearchBtn"
-  style="padding:10px 14px;border:none;border-radius:10px;background:var(--accent);color:#111;cursor:pointer;flex:0 0 auto">
-  조회
-</button>
-
-<button id="h2hClearBtn"
-  style="padding:10px 14px;border:1px solid #232532;border-radius:10px;background:#1a1a22;color:#ddd;cursor:pointer;flex:0 0 auto">
-  초기화
-</button>
-
+          <button id="h2hSearchBtn" style="padding:10px 14px;border:none;border-radius:10px;background:var(--accent);color:#111;cursor:pointer;flex:0 0 auto">조회</button>
+          <button id="h2hClearBtn" style="padding:10px 14px;border:1px solid #232532;border-radius:10px;background:#1a1a22;color:#ddd;cursor:pointer;flex:0 0 auto">초기화</button>
+        </div>
 
         <div id="h2hResult" style="margin-top:12px"></div>
       </div>
@@ -323,7 +315,6 @@ async function start() {
   // 모든 데이터 병합 후 렌더
   renderAll(base);
 }
-
 
   function renderAll(data){
     const playersMeta = new Map((data.players||[]).map(p=>[p.id,p]));
@@ -537,18 +528,17 @@ tabsWrap.addEventListener('click', (e)=>{
 
   // ===== 상대 전적 조회 구현 =====
   function renderHeadToHead(data, matches, playersMeta){
-const $p1 = document.getElementById('h2hP1');
-const $p2 = document.getElementById('h2hP2');
-const $btn = document.getElementById('h2hSearchBtn');
-const $clr = document.getElementById('h2hClearBtn');
-const $out = document.getElementById('h2hResult');
+    const $p1 = document.getElementById('h2hP1');
+    const $p2 = document.getElementById('h2hP2');
+    const $btn = document.getElementById('h2hSearchBtn');
+    const $clr = document.getElementById('h2hClearBtn');
+    const $out = document.getElementById('h2hResult');
 
-if(!$p1 || !$p2 || !$btn || !$out) return;
-
+    if(!$p1 || !$p2 || !$btn || !$out) return;
 
     const HIDE = new Set(['Wonder','ceta']);
 
-    // id 자동완성
+    // id 목록 만들기
     const ids = [...new Set([
       ...(data.players||[]).map(p=>p.id),
       ...matches.flatMap(m=>{
@@ -561,9 +551,23 @@ if(!$p1 || !$p2 || !$btn || !$out) return;
       })
     ])].filter(Boolean).filter(id=>!HIDE.has(id)).sort((a,b)=>a.localeCompare(b));
 
-    $dl.innerHTML = ids.map(id=>`<option value="${escapeHtml(id)}"></option>`).join('');
-    $p1.setAttribute('list','h2hIds');
-    $p2.setAttribute('list','h2hIds');
+    // ✅ (변경) datalist 대신 select 옵션 채우기
+    function fillSelectOptions(){
+      const prev1 = $p1.value || '';
+      const prev2 = $p2.value || '';
+
+      $p1.innerHTML =
+        `<option value="">Player#1 선택 (필수)</option>` +
+        ids.map(id => `<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`).join('');
+
+      $p2.innerHTML =
+        `<option value="">Player#2 선택 (선택)</option>` +
+        ids.map(id => `<option value="${escapeHtml(id)}">${escapeHtml(id)}</option>`).join('');
+
+      if(prev1 && ids.includes(prev1)) $p1.value = prev1;
+      if(prev2 && ids.includes(prev2)) $p2.value = prev2;
+    }
+    fillSelectOptions();
 
     function normalizeId(v){
       return (v||'').trim();
@@ -669,9 +673,7 @@ if(!$p1 || !$p2 || !$btn || !$out) return;
           const t1=m.team1, t2=m.team2;
           const in1=t1.includes(p1), in2=t2.includes(p1);
           if(!in1 && !in2) continue;
-          const my = in1 ? t1 : t2;
           const other = in1 ? t2 : t1;
-          // 같은 팀은 제외, 상대팀 인원만 bump
           for(const o of other) bump(o,'team');
         }
       }
@@ -832,7 +834,7 @@ if(!$p1 || !$p2 || !$btn || !$out) return;
       const p2 = normalizeId($p2.value);
 
       if(!p1){
-        $out.innerHTML = `<div class="muted">Player#1 ID를 입력하세요.</div>`;
+        $out.innerHTML = `<div class="muted">Player#1 ID를 선택하세요.</div>`;
         return;
       }
       if(HIDE.has(p1) || (p2 && HIDE.has(p2))){
@@ -844,7 +846,7 @@ if(!$p1 || !$p2 || !$btn || !$out) return;
         return;
       }
 
-      // 존재 여부 체크(완전 강제는 X, 그래도 안내)
+      // 존재 여부 체크(선택 UI라 보통 통과)
       const known = new Set(ids);
       if(!known.has(p1)){
         $out.innerHTML = `<div class="muted">Player#1(${escapeHtml(p1)})을 데이터에서 찾을 수 없습니다.</div>`;
@@ -868,18 +870,11 @@ if(!$p1 || !$p2 || !$btn || !$out) return;
     $btn.addEventListener('click', doSearch);
     $clr.addEventListener('click', ()=>{
       $p1.value=''; $p2.value='';
-      $out.innerHTML = `<div class="muted">Player#1 / Player#2를 입력 후 조회하세요.</div>`;
-    });
-
-    // Enter로 조회
-    [$p1,$p2].forEach(inp=>{
-      inp.addEventListener('keydown', (e)=>{
-        if(e.key==='Enter') doSearch();
-      });
+      $out.innerHTML = `<div class="muted">Player#1 / Player#2를 선택 후 조회하세요.</div>`;
     });
 
     // 초기 메시지
-    $out.innerHTML = `<div class="muted">Player#1 / Player#2를 입력 후 조회하세요.</div>`;
+    $out.innerHTML = `<div class="muted">Player#1 / Player#2를 선택 후 조회하세요.</div>`;
   }
 
   function escapeHtml(s){
@@ -1181,7 +1176,6 @@ if(!$p1 || !$p2 || !$btn || !$out) return;
   }
 })();
 </script>
-
 
 </body>
 </html>
