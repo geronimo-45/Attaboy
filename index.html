@@ -46,31 +46,6 @@
     .match-header{font-weight:700;margin-bottom:6px;cursor:pointer;color:#ffb347}
     .match-item{color:#ddd;font-size:14px;margin:4px 0;padding-left:8px}
     .hidden{display:none;}
-
-    /* ✅ 상대 전적 조회: 입력 아래 추천 리스트 */
-    .h2h-input-wrap{flex:1 1 220px; min-width:220px}
-    .h2h-suggest{
-      margin-top:8px;
-      border:1px solid rgba(255,255,255,0.10);
-      border-radius:10px;
-      background:rgba(0,0,0,0.18);
-      overflow:hidden;
-      display:none;
-    }
-    .h2h-suggest .item{
-      padding:10px 12px;
-      cursor:pointer;
-      color:#ddd;
-      border-bottom:1px solid rgba(255,255,255,0.06);
-      font-size:14px;
-    }
-    .h2h-suggest .item:last-child{border-bottom:none;}
-    .h2h-suggest .item:hover{background:rgba(255,255,255,0.06)}
-    .h2h-suggest .empty{
-      padding:10px 12px;
-      color:#aaa;
-      font-size:13px;
-    }
   </style>
 </head>
 
@@ -86,7 +61,6 @@
     <button class="tab" data-tab="elo-info">ELO 시스템 설명</button>
     <button class="tab" data-tab="h2h">상대 전적 조회</button>
   </nav>
-
 <!-- 🔹 플레이어 히스토리 팝업 -->
 <div id="playerModal" class="modal" style="position:fixed;z-index:1000;left:0;top:0;width:100%;height:100%;background:rgba(0,0,0,.6);padding-top:60px;display:none;">
   <div class="modal-content" style="background:#1a1a22;margin:auto;padding:20px;border-radius:12px;width:85%;max-height:80%;overflow-y:auto;color:#eee;box-shadow:0 0 20px rgba(0,0,0,.6)">
@@ -233,4 +207,969 @@
         const deltaLose = -K*(expectedA);
         const winPct=(expectedA*100).toFixed(1);
 
-        document.getElementById("simResul
+        document.getElementById("simResult").innerHTML=`
+          <div><b>예상 승률</b>: A ${winPct}% / B ${(100-expectedA*100).toFixed(1)}%</div>
+          <div><b>K값</b>: ${K}</div>
+          <div><b>A 승리 시</b>: A +${deltaWin.toFixed(2)} / B ${deltaLose.toFixed(2)}</div>
+          <div><b>B 승리 시</b>: A ${(-deltaWin).toFixed(2)} / B +${(-deltaLose).toFixed(2)}</div>
+        `;
+      });
+    </script>
+
+  </div>
+</section>
+
+
+    <!-- 상대 전적 조회 -->
+    <section id="h2h">
+      <div class="card">
+        <h2 style="margin:6px 0;color:var(--accent)">상대 전적 조회</h2>
+        <div class="muted" style="margin-top:6px">
+          Player#1은 필수, Player#2는 선택입니다. Player#2를 비우면 Player#1이 상대했던 사람 목록이 표시됩니다. (▼로 날짜/맵/스코어 확인)
+        </div>
+
+        <div class="filters" style="margin-top:12px">
+          <input id="h2hP1" placeholder="Player#1 ID (필수)" style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
+          <input id="h2hP2" placeholder="Player#2 ID (선택)" style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
+          <button id="h2hSearchBtn" style="padding:10px 14px;border:none;border-radius:10px;background:var(--accent);color:#111;cursor:pointer;flex:0 0 auto">조회</button>
+          <button id="h2hClearBtn" style="padding:10px 14px;border:1px solid #232532;border-radius:10px;background:#1a1a22;color:#ddd;cursor:pointer;flex:0 0 auto">초기화</button>
+        </div>
+
+        <!-- 자동완성 -->
+        <datalist id="h2hIds"></datalist>
+
+        <div id="h2hResult" style="margin-top:12px"></div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ✅ Chart.js 로드 (defer 추가) -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js" defer></script>
+
+<!-- ✅ 스크립트 시작 -->
+<script>
+(function(){
+  // --- 탭 전환 ---
+  document.querySelectorAll('nav .tab').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      document.querySelectorAll('nav .tab').forEach(b=>b.classList.remove('active'));
+      e.currentTarget.classList.add('active');
+      document.querySelectorAll('main section').forEach(s=>s.classList.remove('active'));
+      document.getElementById(e.currentTarget.dataset.tab).classList.add('active');
+    });
+  });
+
+  // --- 안전 로더 (기존 유지) ---
+  const safe = async (url) => {
+    try {
+      const res = await fetch(url + (url.includes('?')?'&':'?') + 'v=' + Date.now(), { cache: 'no-store' });
+      if (!res.ok) throw new Error('HTTP ' + res.status);
+      const txt = await res.text();
+      try { return JSON.parse(txt); }
+      catch (e) { console.error('❌ JSON 파싱 실패:', url, txt.slice(0,200)); return {players:[], matches:[]}; }
+    } catch (e) {
+      console.error('❌ 로드 실패:', url, e);
+      return {players:[], matches:[]};
+    }
+  };
+
+  const basePath = location.pathname.replace(/[^\/]*$/, '');
+  const path = (name) => basePath + name;
+
+  const TierOrder=['Stone','Bronze','Silver','Gold','Diamond','Legend'];
+  const getTierIndex = t => Math.max(0, TierOrder.indexOf(t||'Silver'));
+  const toMMDD = d => d ? d.split('-').slice(1).join('/') : '';
+
+  const $search = document.getElementById('search');
+  const $race   = document.getElementById('raceFilter');
+  const $tier   = document.getElementById('tierFilter');
+
+start();
+
+async function start() {
+  // 기본 데이터 로드
+  const base = await safe(path('data.json'));
+
+  // 🔹 추가 달 데이터 목록 (필요시 여기에만 추가하면 됨)
+  const months = ['oct', 'nov', 'dec']; // 예: ['oct', 'nov', 'dec', 'jan'] 형태로 확장 가능
+
+  // 🔹 각 달의 JSON 자동 병합
+  for (const m of months) {
+    try {
+      const data = await safe(path(`data_${m}.json`));
+      base.matches = (base.matches || []).concat(data.matches || []);
+      const seen = new Set((base.players || []).map(p => p.id));
+      (data.players || []).forEach(p => {
+        if (!seen.has(p.id)) base.players.push(p);
+      });
+    } catch (err) {
+      console.warn(`⚠️ data_${m}.json 로드 중 오류 발생:`, err);
+    }
+  }
+
+  // 모든 데이터 병합 후 렌더
+  renderAll(base);
+}
+
+
+  function renderAll(data){
+    const playersMeta = new Map((data.players||[]).map(p=>[p.id,p]));
+    const stat = new Map();
+    const eloByDate = {};
+
+    const ensure = (id)=>{
+      if(stat.has(id)) return stat.get(id);
+      const m=playersMeta.get(id)||{};
+      const o={ id, elo:1000, tier:m.tier||'Silver', race:m.race||'Protoss', win:0, loss:0, played:0 };
+      stat.set(id,o); return o;
+    };
+
+    const calc = (A,B,res,isTeam)=>{
+      const K = isTeam? 8 : 12;
+      const effA = A.elo + getTierIndex(A.tier)*40;
+      const effB = B.elo + getTierIndex(B.tier)*40;
+      const expectedA = 1/(1+Math.pow(10,(effB-effA)/400));
+      const delta = K*(res-expectedA);
+      A.elo += delta; B.elo -= delta;
+    };
+
+    const matches = (data.matches||[]).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+
+    for(const m of matches){
+      if(!m.map || m.map==='Match') continue;
+      const d = toMMDD(m.date);
+
+      if(m.player1 && m.player2){
+        const p1=ensure(m.player1), p2=ensure(m.player2);
+        if(m.winner===m.player1){ calc(p1,p2,1,false); p1.win++; p2.loss++; }
+        else if(m.winner===m.player2){ calc(p1,p2,0,false); p2.win++; p1.loss++; }
+        p1.played++; p2.played++;
+        (eloByDate[p1.id]??={})[d]=Math.round(p1.elo);
+        (eloByDate[p2.id]??={})[d]=Math.round(p2.elo);
+      }
+
+      if(Array.isArray(m.team1) && Array.isArray(m.team2)){
+        const T1=m.team1.map(ensure), T2=m.team2.map(ensure);
+        const winners = Array.isArray(m.winner)? m.winner : [];
+        const win1 = winners.some(x=>m.team1.includes(x)) ? 1 : 0;
+
+        const avg1=T1.reduce((a,b)=>a+b.elo,0)/T1.length;
+        const avg2=T2.reduce((a,b)=>a+b.elo,0)/T2.length;
+        const dA={elo:avg1,tier:'Silver'}, dB={elo:avg2,tier:'Silver'};
+        calc(dA,dB,win1,true);
+        const diffA=dA.elo-avg1, diffB=dB.elo-avg2;
+
+        T1.forEach(p=>{ p.elo+=diffA; p.played++; win1?p.win++:p.loss++; (eloByDate[p.id]??={})[d]=Math.round(p.elo); });
+        T2.forEach(p=>{ p.elo+=diffB; p.played++; !win1?p.win++:p.loss++; (eloByDate[p.id]??={})[d]=Math.round(p.elo); });
+      }
+    }
+
+// --- 랭킹 표시 (ELO 내림차순) + 필터 ---
+const tbody = document.querySelector('#players-table tbody');
+
+// 🔧 const → let 로 변경하고, 숨김 필터 적용
+let allRows = [...stat.values()].sort((a,b)=>b.elo-a.elo);
+
+// 숨길 ID 목록 (탈퇴 회원 목록)
+const HIDE = new Set(['Wonder', 'ceta']);
+
+// 탈퇴 회원 숨기기
+allRows = allRows.filter(p => !HIDE.has(p.id));
+
+    function applyFilters(){
+      const q = ($search.value||'').trim().toLowerCase();
+      const r = $race.value||'';
+      const t = $tier.value||'';
+
+      const filtered = allRows.filter(p=>{
+        if(q && !p.id.toLowerCase().includes(q)) return false;
+        if(r && p.race!==r) return false;
+        if(t && p.tier!==t) return false;
+        return true;
+      });
+
+      tbody.innerHTML = filtered.map((p,i)=>{
+        const wr = p.played? ((p.win/p.played)*100).toFixed(1) : '0.0';
+        return `<tr>
+          <td>${i+1}</td><td>${p.id}</td><td>${p.race}</td>
+          <td class="tier-${p.tier}">${p.tier}</td>
+          <td>${Math.round(p.elo)}</td><td>${p.win}</td><td>${p.loss}</td><td>${wr}%</td>
+        </tr>`;
+      }).join('');
+    }
+    ['input','change'].forEach(ev=>{
+      $search.addEventListener(ev,applyFilters);
+      $race.addEventListener(ev,applyFilters);
+      $tier.addEventListener(ev,applyFilters);
+    });
+    applyFilters();
+
+// --- 기록실 (월별 탭) ---
+const list = document.getElementById('match-list');
+const tabsWrap = document.getElementById('records-months');
+
+// 1) 월 키/라벨 함수
+const getMonthKey = (iso) => {
+  // iso: YYYY-MM-DD
+  if(!iso || !iso.includes('-')) return 'unknown';
+  const [y,m] = iso.split('-');
+  return `${y}-${m}`; // e.g. 2025-09
+};
+const getMonthLabel = (key) => {
+  // key: YYYY-MM
+  const [y,m] = key.split('-');
+  const yy = String(y).slice(2);             // '25'
+  const mm = String(parseInt(m,10));         // '9' (앞의 0 제거)
+  return `${yy}년 ${mm}월`;
+};
+
+// 2) 월 목록 만들기 (데이터 기반)
+const byMonth = new Map();
+for (const m of matches) {
+  const key = getMonthKey(m.date);
+  if (!byMonth.has(key)) byMonth.set(key, []);
+  byMonth.get(key).push(m);
+}
+
+// 3) 월 정렬 (오름차순: 2025-09, 10, 11, 12 …)
+const monthsSorted = [...byMonth.keys()].sort((a,b)=> a.localeCompare(b));
+
+// 4) 탭 버튼 렌더
+tabsWrap.innerHTML = monthsSorted.map((key,i)=>`
+  <button class="month-tab${i===monthsSorted.length-1?' active':''}"
+    data-month="${key}"
+    style="background:#1a1a22;border:1px solid #232532;color:#ddd;padding:8px 12px;border-radius:10px;cursor:pointer;">
+    ${getMonthLabel(key)}
+  </button>
+`).join(' ');
+
+// 5) 월별 렌더 함수 (날짜별 접기/펼치기 포함)
+function renderMonth(key){
+  const data = (byMonth.get(key)||[]).slice().sort((a,b)=> String(a.date).localeCompare(String(b.date)));
+  list.innerHTML = ''; // reset
+
+  let curDate=null, box=null, mCount=0;
+  const flushHeader = ()=>{ if(box && mCount>0){ box.querySelector('.match-header').textContent += ` (Match ${mCount}게임)`; } };
+
+  for(const m of data){
+    if(m.date !== curDate){
+      flushHeader();
+      curDate = m.date; mCount = 0;
+
+      box = document.createElement('div');
+      box.className = 'match';
+
+      const hdr = document.createElement('div');
+      hdr.className = 'match-header';
+      hdr.textContent = `${curDate}`;
+
+      const inner = document.createElement('div');
+      inner.className = 'match-inner hidden';
+      hdr.addEventListener('click',()=> inner.classList.toggle('hidden'));
+
+      box.appendChild(hdr);
+      box.appendChild(inner);
+      list.appendChild(box);
+    }
+
+    const wrap = box.querySelector('.match-inner');
+
+    if(m.map === 'Match'){
+      mCount++;
+      const line = document.createElement('div');
+      line.className = 'match-item';
+      line.style.color = '#a8e0a8';
+      const win = Array.isArray(m.winner)? m.winner.join(', ') : (m.winner||'-');
+      line.textContent = `[Match] 승자: ${win}${m.score?` | 스코어: ${m.score}`:''}`;
+      wrap.appendChild(line);
+      continue;
+    }
+
+    if(m.player1 && m.player2){
+      const l = document.createElement('div'); l.className='match-item';
+      l.textContent = `${m.map||'-'} — ${m.player1} vs ${m.player2} | 승자: ${m.winner||'-'}${m.score?` | ${m.score}`:''}`;
+      wrap.appendChild(l);
+    }
+
+    if(Array.isArray(m.team1) && Array.isArray(m.team2)){
+      const l = document.createElement('div'); l.className='match-item';
+      const win = Array.isArray(m.winner)? m.winner.join(', ') : (m.winner||'-');
+      l.textContent = `${m.map||'-'} — [${m.team1.join(', ')}] vs [${m.team2.join(', ')}] | 승자: ${win}${m.score?` | ${m.score}`:''}`;
+      wrap.appendChild(l);
+    }
+  }
+  flushHeader();
+}
+
+// 6) 초기 표시: 최신 월(마지막 탭) 자동 선택
+if (monthsSorted.length){
+  renderMonth(monthsSorted[monthsSorted.length-1]);
+}
+
+// 7) 탭 클릭 이벤트
+tabsWrap.addEventListener('click', (e)=>{
+  const btn = e.target.closest('.month-tab');
+  if(!btn) return;
+  // active 토글
+  tabsWrap.querySelectorAll('.month-tab').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  // 렌더
+  const key = btn.dataset.month;
+  renderMonth(key);
+});
+
+    // --- 상대 전적 조회 ---
+    renderHeadToHead(data, matches, playersMeta);
+  }
+
+  // ===== 상대 전적 조회 구현 =====
+  function renderHeadToHead(data, matches, playersMeta){
+    const $p1 = document.getElementById('h2hP1');
+    const $p2 = document.getElementById('h2hP2');
+    const $btn = document.getElementById('h2hSearchBtn');
+    const $clr = document.getElementById('h2hClearBtn');
+    const $out = document.getElementById('h2hResult');
+    const $dl  = document.getElementById('h2hIds');
+
+    if(!$p1 || !$p2 || !$btn || !$out || !$dl) return;
+
+    const HIDE = new Set(['Wonder','ceta']);
+
+    // id 자동완성
+    const ids = [...new Set([
+      ...(data.players||[]).map(p=>p.id),
+      ...matches.flatMap(m=>{
+        const a=[];
+        if(m.player1) a.push(m.player1);
+        if(m.player2) a.push(m.player2);
+        if(Array.isArray(m.team1)) a.push(...m.team1);
+        if(Array.isArray(m.team2)) a.push(...m.team2);
+        return a;
+      })
+    ])].filter(Boolean).filter(id=>!HIDE.has(id)).sort((a,b)=>a.localeCompare(b));
+
+    $dl.innerHTML = ids.map(id=>`<option value="${escapeHtml(id)}"></option>`).join('');
+    $p1.setAttribute('list','h2hIds');
+    $p2.setAttribute('list','h2hIds');
+
+    function normalizeId(v){
+      return (v||'').trim();
+    }
+    function pct(w,l){
+      const n=w+l;
+      return n? ((w/n)*100).toFixed(1) : '0.0';
+    }
+
+    // pair 집계
+    function computePair(p1, p2){
+      let soloW=0, soloL=0, teamW=0, teamL=0;
+      const soloDetails=[];
+      const teamDetails=[];
+
+      for(const m of matches){
+        if(!m || !m.map) continue;
+        if(m.map === 'Match') continue; // 헤더성 데이터 제외
+
+        // 1v1
+        if(m.player1 && m.player2){
+          const a=m.player1, b=m.player2;
+          if(!((a===p1 && b===p2) || (a===p2 && b===p1))) continue;
+          const winner=m.winner||'';
+          const p1Win = (winner===p1);
+          const p2Win = (winner===p2);
+          // winner가 둘 중 하나일 때만 카운트
+          if(!p1Win && !p2Win) continue;
+
+          if(p1Win) soloW++; else soloL++;
+          soloDetails.push({
+            date: m.date||'-',
+            map: m.map||'-',
+            score: m.score||'',
+            result: p1Win ? '승' : '패',
+            opponent: p2
+          });
+          continue;
+        }
+
+        // 팀전
+        if(Array.isArray(m.team1) && Array.isArray(m.team2)){
+          const t1=m.team1, t2=m.team2;
+          const p1In1=t1.includes(p1), p1In2=t2.includes(p1);
+          const p2In1=t1.includes(p2), p2In2=t2.includes(p2);
+
+          // 같은 팀이면 "상대 전적"으로는 제외
+          if((p1In1 && p2In1) || (p1In2 && p2In2)) continue;
+
+          // 서로 반대팀에 있을 때만 카운트
+          const opposed = (p1In1 && p2In2) || (p1In2 && p2In1);
+          if(!opposed) continue;
+
+          const winners = Array.isArray(m.winner) ? m.winner : [];
+          const win1 = winners.some(x=>t1.includes(x)) ? 1 : 0;
+          const p1Win = p1In1 ? !!win1 : !win1;
+
+          if(p1Win) teamW++; else teamL++;
+
+          teamDetails.push({
+            date: m.date||'-',
+            map: m.map||'-',
+            score: m.score||'',
+            result: p1Win ? '승' : '패',
+            myTeam: p1In1 ? t1.slice() : t2.slice(),
+            oppTeam: p1In1 ? t2.slice() : t1.slice(),
+            opponent: p2
+          });
+          continue;
+        }
+      }
+
+      return {
+        p1, p2,
+        soloW, soloL,
+        teamW, teamL,
+        soloDetails,
+        teamDetails
+      };
+    }
+
+    // p1의 상대 목록
+    function listOpponents(p1){
+      const opp = new Map(); // id -> {solo, team, total}
+      const bump = (id, key)=>{
+        if(!id || id===p1) return;
+        if(HIDE.has(id)) return;
+        if(!opp.has(id)) opp.set(id,{id, solo:0, team:0});
+        opp.get(id)[key]++;
+      };
+
+      for(const m of matches){
+        if(!m || !m.map) continue;
+        if(m.map === 'Match') continue;
+
+        if(m.player1 && m.player2){
+          const a=m.player1, b=m.player2;
+          if(a===p1) bump(b,'solo');
+          if(b===p1) bump(a,'solo');
+        }
+
+        if(Array.isArray(m.team1) && Array.isArray(m.team2)){
+          const t1=m.team1, t2=m.team2;
+          const in1=t1.includes(p1), in2=t2.includes(p1);
+          if(!in1 && !in2) continue;
+          const my = in1 ? t1 : t2;
+          const other = in1 ? t2 : t1;
+          // 같은 팀은 제외, 상대팀 인원만 bump
+          for(const o of other) bump(o,'team');
+        }
+      }
+
+      const arr=[...opp.values()].map(o=>({ ...o, total:o.solo+o.team }));
+      arr.sort((a,b)=> b.total-a.total || a.id.localeCompare(b.id));
+      return arr;
+    }
+
+    function renderPairResult(pair){
+      const {p1,p2,soloW,soloL,teamW,teamL,soloDetails,teamDetails} = pair;
+      const soloN=soloW+soloL, teamN=teamW+teamL;
+
+      const soloWr=pct(soloW,soloL);
+      const teamWr=pct(teamW,teamL);
+
+      const soloBlock = `
+        <div class="card" style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="font-weight:800;color:#ffb347">${escapeHtml(p1)} vs ${escapeHtml(p2)}</div>
+            <div class="muted" style="font-size:12px">개인전/팀전 분리 집계</div>
+          </div>
+
+          <table style="margin-top:10px">
+            <thead>
+              <tr>
+                <th>구분</th><th>승</th><th>패</th><th>승률</th><th>게임수</th><th>상세</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td>개인전</td>
+                <td>${soloW}</td><td>${soloL}</td><td>${soloWr}%</td><td>${soloN}</td>
+                <td style="text-align:center">
+                  <button class="h2h-toggle" data-target="solo"
+                    style="border:1px solid #232532;background:#1a1a22;color:#ddd;border-radius:8px;padding:6px 10px;cursor:pointer">
+                    ▼
+                  </button>
+                </td>
+              </tr>
+              <tr>
+                <td>팀전</td>
+                <td>${teamW}</td><td>${teamL}</td><td>${teamWr}%</td><td>${teamN}</td>
+                <td style="text-align:center">
+                  <button class="h2h-toggle" data-target="team"
+                    style="border:1px solid #232532;background:#1a1a22;color:#ddd;border-radius:8px;padding:6px 10px;cursor:pointer">
+                    ▼
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+
+          <div id="h2hDetailSolo" class="hidden" style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.06);padding-top:10px">
+            ${renderDetailList('개인전 상세', soloDetails, 'solo')}
+          </div>
+
+          <div id="h2hDetailTeam" class="hidden" style="margin-top:10px;border-top:1px solid rgba(255,255,255,0.06);padding-top:10px">
+            ${renderDetailList('팀전 상세', teamDetails, 'team')}
+          </div>
+        </div>
+      `;
+      return soloBlock;
+    }
+
+    function renderDetailList(title, items, mode){
+      if(!items || !items.length){
+        return `<div class="muted">${title}: 데이터 없음</div>`;
+      }
+      const rows = items
+        .slice()
+        .sort((a,b)=> String(a.date).localeCompare(String(b.date)))
+        .map(it=>{
+          const color = (it.result==='승') ? '#4ade80' : '#f87171';
+          const score = it.score ? ` | ${escapeHtml(it.score)}` : '';
+          if(mode==='solo'){
+            return `<div style="margin:4px 0;color:#ddd">
+              ${escapeHtml(it.date)} | ${escapeHtml(it.map)} | <b style="color:${color}">${it.result}</b>${score}
+            </div>`;
+          }
+          return `<div style="margin:4px 0;color:#ddd">
+            ${escapeHtml(it.date)} | ${escapeHtml(it.map)} | <b style="color:${color}">${it.result}</b>${score}
+            <div class="muted" style="font-size:12px;margin-left:10px">
+              우리팀: [${(it.myTeam||[]).map(escapeHtml).join(', ')}] / 상대팀: [${(it.oppTeam||[]).map(escapeHtml).join(', ')}]
+            </div>
+          </div>`;
+        }).join('');
+      return `<div style="font-weight:700;color:#ffb347;margin-bottom:6px">${title}</div>${rows}`;
+    }
+
+    function renderOpponentList(p1){
+      const opponents = listOpponents(p1);
+      if(!opponents.length){
+        $out.innerHTML = `<div class="muted">상대 전적이 없습니다.</div>`;
+        return;
+      }
+
+      const listHtml = `
+        <div class="card" style="margin-top:12px">
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
+            <div style="font-weight:800;color:#ffb347">${escapeHtml(p1)} 상대 목록</div>
+            <div class="muted" style="font-size:12px">클릭하면 아래에 전적이 표시됩니다.</div>
+          </div>
+
+          <table style="margin-top:10px">
+            <thead>
+              <tr><th>상대 ID</th><th>개인전 게임</th><th>팀전 게임</th><th>총 게임</th><th>선택</th></tr>
+            </thead>
+            <tbody>
+              ${opponents.map(o=>`
+                <tr>
+                  <td>${escapeHtml(o.id)}</td>
+                  <td>${o.solo}</td>
+                  <td>${o.team}</td>
+                  <td>${o.total}</td>
+                  <td>
+                    <button class="h2h-pick" data-opp="${escapeHtml(o.id)}"
+                      style="border:1px solid #232532;background:#1a1a22;color:#ddd;border-radius:8px;padding:6px 10px;cursor:pointer">
+                      선택
+                    </button>
+                  </td>
+                </tr>
+              `).join('')}
+            </tbody>
+          </table>
+
+          <div id="h2hPickedArea" style="margin-top:12px"></div>
+        </div>
+      `;
+      $out.innerHTML = listHtml;
+
+      const picked = document.getElementById('h2hPickedArea');
+      $out.querySelectorAll('.h2h-pick').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const oppId = btn.dataset.opp;
+          $p2.value = oppId;
+          const pair = computePair(p1, oppId);
+          picked.innerHTML = renderPairResult(pair);
+          bindPairToggles(picked);
+        });
+      });
+    }
+
+    function bindPairToggles(root){
+      root.querySelectorAll('.h2h-toggle').forEach(btn=>{
+        btn.addEventListener('click', ()=>{
+          const t = btn.dataset.target;
+          const soloEl = root.querySelector('#h2hDetailSolo');
+          const teamEl = root.querySelector('#h2hDetailTeam');
+          if(t==='solo' && soloEl) soloEl.classList.toggle('hidden');
+          if(t==='team' && teamEl) teamEl.classList.toggle('hidden');
+        });
+      });
+    }
+
+    function doSearch(){
+      const p1 = normalizeId($p1.value);
+      const p2 = normalizeId($p2.value);
+
+      if(!p1){
+        $out.innerHTML = `<div class="muted">Player#1 ID를 입력하세요.</div>`;
+        return;
+      }
+      if(HIDE.has(p1) || (p2 && HIDE.has(p2))){
+        $out.innerHTML = `<div class="muted">해당 ID는 조회 대상에서 제외되어 있습니다.</div>`;
+        return;
+      }
+      if(p2 && p1===p2){
+        $out.innerHTML = `<div class="muted">Player#1과 Player#2는 서로 다른 ID여야 합니다.</div>`;
+        return;
+      }
+
+      // 존재 여부 체크(완전 강제는 X, 그래도 안내)
+      const known = new Set(ids);
+      if(!known.has(p1)){
+        $out.innerHTML = `<div class="muted">Player#1(${escapeHtml(p1)})을 데이터에서 찾을 수 없습니다.</div>`;
+        return;
+      }
+      if(p2 && !known.has(p2)){
+        $out.innerHTML = `<div class="muted">Player#2(${escapeHtml(p2)})을 데이터에서 찾을 수 없습니다.</div>`;
+        return;
+      }
+
+      if(!p2){
+        renderOpponentList(p1);
+        return;
+      }
+
+      const pair = computePair(p1,p2);
+      $out.innerHTML = renderPairResult(pair);
+      bindPairToggles($out);
+    }
+
+    $btn.addEventListener('click', doSearch);
+    $clr.addEventListener('click', ()=>{
+      $p1.value=''; $p2.value='';
+      $out.innerHTML = `<div class="muted">Player#1 / Player#2를 입력 후 조회하세요.</div>`;
+    });
+
+    // Enter로 조회
+    [$p1,$p2].forEach(inp=>{
+      inp.addEventListener('keydown', (e)=>{
+        if(e.key==='Enter') doSearch();
+      });
+    });
+
+    // 초기 메시지
+    $out.innerHTML = `<div class="muted">Player#1 / Player#2를 입력 후 조회하세요.</div>`;
+  }
+
+  function escapeHtml(s){
+    return String(s??'')
+      .replaceAll('&','&amp;')
+      .replaceAll('<','&lt;')
+      .replaceAll('>','&gt;')
+      .replaceAll('"','&quot;')
+      .replaceAll("'","&#39;");
+  }
+
+  // --- 그래프 함수는 원본 유지(현재 미사용) ---
+  function renderChart(eloByDate){
+    const container=document.getElementById('elo-chart-container');
+    if(!container) return;
+
+    // 🔹 숨길 ID 목록 정의
+    const HIDE = new Set(['Wonder', 'ceta']);
+
+    container.innerHTML = `
+      <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap;">
+        <div>
+          <div style="font-size:13px;color:#aaa;margin-bottom:6px">비교할 플레이어 선택 (Ctrl/⌘ 다중 선택)</div>
+          <select id="eloPlayerSelect" multiple size="10"
+            style="min-width:220px;height:200px;padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
+            ${Object.keys(eloByDate)
+                .filter(id => !HIDE.has(id))
+                .sort()
+                .map(id => `<option value="${id}">${id}</option>`)
+                .join('')}
+            </select>
+          </div>
+          <div id="eloChartArea" style="flex:1;min-width:320px;width:100%;height:460px"></div>
+        </div>
+      `;
+
+    const { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } = window.Recharts || {};
+    const area = document.getElementById('eloChartArea');
+    if(!LineChart){ area.innerHTML=`<div class="muted">Recharts가 아직 로드되지 않았습니다.</div>`; return; }
+
+    const palette=["#ff6a00","#4ade80","#60a5fa","#f472b6","#facc15","#38bdf8","#a78bfa","#fb923c","#22d3ee","#94a3b8"];
+
+    function draw(sel){
+      if(!sel.length){ area.innerHTML=`<div class="muted">왼쪽에서 1명 이상 선택하세요.</div>`; return; }
+      const dates=[...new Set(sel.flatMap(id=>Object.keys(eloByDate[id]||{})))].sort((a,b)=>{
+        const [am,ad]=a.split('/').map(Number), [bm,bd]=b.split('/').map(Number);
+        return am===bm? ad-bd : am-bm;
+      });
+      const rows=dates.map(d=>{ const r={date:d}; sel.forEach(id=>r[id]=eloByDate[id]?.[d]??null); return r; });
+
+      ReactDOM.render(
+        React.createElement(
+          ResponsiveContainer,{width:"100%",height:460},
+          React.createElement(LineChart,{data:rows,margin:{top:20,right:30,left:0,bottom:0}},
+            React.createElement(CartesianGrid,{strokeDasharray:"3 3",stroke:"rgba(255,255,255,0.12)"}),
+            React.createElement(XAxis,{dataKey:"date",stroke:"#aaa",tick:{fontSize:12}}),
+            React.createElement(YAxis,{stroke:"#aaa",domain:[800,1200],tick:{fontSize:12}}),
+            React.createElement(Tooltip,{formatter:v=>Math.round(v),contentStyle:{backgroundColor:"#1a1a22",border:"1px solid #333"}}),
+            React.createElement(Legend,null),
+            ...sel.map((id,i)=>React.createElement(Line,{
+              key:id, type:"monotone", dataKey:id, name:id,
+              stroke:palette[i%palette.length], dot:false, strokeWidth:2, isAnimationActive:false
+            }))
+          )
+        ), area
+      );
+    }
+
+    document.getElementById('eloPlayerSelect').addEventListener('change', e=>{
+      const sel=[...e.target.selectedOptions].map(o=>o.value);
+      draw(sel);
+    });
+  }
+
+  // --- 팝업 로직 ---
+  const tbody = document.querySelector('#players-table tbody');
+  if(!tbody) return;
+
+  tbody.addEventListener('click', async e=>{
+    const tr = e.target.closest('tr');
+    if(!tr) return;
+    const playerId = tr.children[1]?.textContent.trim();
+    if(!playerId) return;
+    await showPlayerModal(playerId);
+  });
+
+  async function showPlayerModal(playerId){
+    try {
+      // 1) 기본 + 월별 데이터 병합 (메인과 동일한 방식으로 통일)
+      const base = await safe(path('data.json'));
+
+      // ✅ 현재 포함 달 (필요 시 여기만 추가: 'dec','jan' …)
+      const months = ['oct','nov','dec'];
+
+      for (const m of months) {
+        const add = await safe(path(`data_${m}.json`));
+        base.matches = (base.matches || []).concat(add.matches || []);
+        const seen = new Set((base.players || []).map(p => p.id));
+        (add.players || []).forEach(p => { if (!seen.has(p.id)) base.players.push(p); });
+      }
+
+      const player = base.players.find(p=>p.id===playerId);
+      if(!player){ alert('플레이어 데이터를 찾을 수 없습니다.'); return; }
+
+      const TierOrder=['Stone','Bronze','Silver','Gold','Diamond','Legend'];
+      const getTierIndex=t=>Math.max(0,TierOrder.indexOf(t||'Silver'));
+      const calc=(A,B,res,isTeam)=>{
+        const K=isTeam?8:12;
+        const effA=A.elo+getTierIndex(A.tier)*40;
+        const effB=B.elo+getTierIndex(B.tier)*40;
+        const expectedA=1/(1+Math.pow(10,(effB-effA)/400));
+        const delta=K*(res-expectedA);
+        A.elo+=delta;B.elo-=delta;
+      };
+
+      const stat=new Map();
+      const ensure=(id)=>{
+        if(stat.has(id))return stat.get(id);
+        const meta=(base.players||[]).find(p=>p.id===id)||{};
+        const o={id,tier:meta.tier||'Silver',race:meta.race||'Protoss',elo:1000,history:[1000]};
+        stat.set(id,o);return o;
+      };
+
+      const matches=(base.matches||[])
+        .filter(m=>m.map!=="Match")
+        .slice()
+        .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
+
+      const playerLog=[];
+
+      for(const m of matches){
+        if(m.player1 && m.player2){
+          const p1=ensure(m.player1), p2=ensure(m.player2);
+          const res=(m.winner===m.player1)?1:(m.winner===m.player2)?0:null;
+          let involved=false, eloBefore=0, opponentText='';
+          if(m.player1===playerId){involved=true; eloBefore=p1.elo; opponentText=m.player2;}
+          else if(m.player2===playerId){involved=true; eloBefore=p2.elo; opponentText=m.player1;}
+          if(res!==null){
+            calc(p1,p2,res,false);
+            p1.history.push(Math.round(p1.elo));
+            p2.history.push(Math.round(p2.elo));
+          }
+          if(involved){
+            const after=(m.player1===playerId)?p1.elo:p2.elo;
+            const isWin=(m.winner===playerId);
+            playerLog.push({date:m.date,map:m.map||'-',opponentText,isWin,eloAfter:Math.round(after),delta:Math.round(after-eloBefore)});
+          }
+        }
+
+        if(Array.isArray(m.team1)&&Array.isArray(m.team2)){
+          const T1=m.team1.map(ensure), T2=m.team2.map(ensure);
+          const winners=Array.isArray(m.winner)?m.winner:[];
+          const win1=winners.some(x=>m.team1.includes(x))?1:0;
+          const inTeam1=m.team1.includes(playerId), inTeam2=m.team2.includes(playerId);
+          const involved=inTeam1||inTeam2;
+          let eloBefore=0, opponentText='';
+          if(involved){
+            const me=inTeam1?T1.find(p=>p.id===playerId):T2.find(p=>p.id===playerId);
+            eloBefore=me.elo;
+            opponentText=(inTeam1?m.team2:m.team1).join(', ');
+          }
+          const avg1=T1.reduce((a,b)=>a+b.elo,0)/T1.length;
+          const avg2=T2.reduce((a,b)=>a+b.elo,0)/T2.length;
+          const dA={elo:avg1,tier:'Silver'}, dB={elo:avg2,tier:'Silver'};
+          calc(dA,dB,win1,true);
+          const diffA=dA.elo-avg1, diffB=dB.elo-avg2;
+          T1.forEach(p=>{p.elo+=diffA;p.history.push(Math.round(p.elo));});
+          T2.forEach(p=>{p.elo+=diffB;p.history.push(Math.round(p.elo));});
+          if(involved){
+            const meAfter=(inTeam1?T1:T2).find(p=>p.id===playerId).elo;
+            const isWin=inTeam1?!!win1:!win1;
+            playerLog.push({
+              date:m.date,
+              map:m.map || '-',
+              opponentText,
+              isWin,
+              eloAfter:Math.round(meAfter),
+              delta:Math.round(meAfter - eloBefore)
+            });
+          }
+        }
+      }
+
+      const target=stat.get(playerId);
+      if(!target){ alert('경기 기록이 없습니다.'); return; }
+
+      // --- 팝업 헤더 정보 ---
+      document.getElementById('modalPlayerName').textContent=player.id;
+      document.getElementById('modalPlayerInfo').innerHTML=
+        `<b>Race:</b> ${player.race} | <b>Tier:</b> ${player.tier} | <b>현재 ELO:</b> ${Math.round(target.elo)} (${target.history.length-1}경기)`;
+
+      // --- 세부 전적 계산 ---
+      let soloWin=0, soloLoss=0, teamWin=0, teamLoss=0;
+      let scWin=0, scLoss=0, htWin=0, htLoss=0;
+      let proWin=0, proLoss=0; // ✅ 프로리그 전적
+
+      for (const m of base.matches || []) {
+        const isSolo = !!(m.player1 && m.player2);
+        const isTeam = Array.isArray(m.team1) && Array.isArray(m.team2);
+        const isSC = (m.map||'').includes('생컨');
+        const isHT = (m.map||'').includes('헌터');
+
+        // ✅ 프로리그 ("Match" 표시)
+        if (m.map === "Match" && Array.isArray(m.team1) && Array.isArray(m.team2)) {
+          const inT1 = m.team1.includes(playerId);
+          const inT2 = m.team2.includes(playerId);
+          if (!inT1 && !inT2) continue;
+
+          const winners = Array.isArray(m.winner) ? m.winner : [];
+          const win1 = winners.some(x => m.team1.includes(x)) ? 1 : 0;
+          const isWin = inT1 ? !!win1 : !win1;
+          isWin ? proWin++ : proLoss++;
+          continue; // 프로리그는 일반전/팀전 집계에 포함되지 않음
+        }
+
+        // ✅ 일반전
+        if (isSolo && (m.player1===playerId || m.player2===playerId)) {
+          const isWin = (m.winner===playerId);
+          isWin ? soloWin++ : soloLoss++;
+          if (isSC) (isWin ? scWin++ : scLoss++);
+          if (isHT) (isWin ? htWin++ : htLoss++);
+        }
+
+        if (isTeam && ((m.team1||[]).includes(playerId) || (m.team2||[]).includes(playerId))) {
+          const isTeam1 = m.team1.includes(playerId);
+          const winners = Array.isArray(m.winner) ? m.winner : [];
+          const win1 = winners.some(x => m.team1.includes(x)) ? 1 : 0;
+          const isWin = isTeam1 ? !!win1 : !win1;
+          isWin ? teamWin++ : teamLoss++;
+          if (isSC) (isWin ? scWin++ : scLoss++);
+          if (isHT) (isWin ? htWin++ : htLoss++);
+        }
+      }
+
+      // --- 통계 영역: 중복 삽입 방지용 고정 엘리먼트 ---
+      let statsEl = document.getElementById('modalStats');
+      if (!statsEl) {
+        statsEl = document.createElement('div');
+        statsEl.id = 'modalStats';
+        statsEl.style.margin = '10px 0 14px 0';
+        statsEl.style.color = '#ccc';
+        statsEl.style.fontSize = '14px';
+        const infoEl = document.getElementById('modalPlayerInfo');
+        infoEl.insertAdjacentElement('afterend', statsEl);
+      }
+
+      // --- 통계 내용 갱신 ---
+      statsEl.innerHTML = `
+        <div>
+          🏆 <b>프로리그:</b> ${proWin}승 ${proLoss}패<br>
+          <b>개인전:</b> ${soloWin}승 ${soloLoss}패,
+          <b>팀전:</b> ${teamWin}승 ${teamLoss}패
+          <span style="color:#888">(팀전은 생컨·헌터 모두 포함)</span><br>
+          <b>생컨:</b> ${scWin}승 ${scLoss}패,
+          <b>헌터:</b> ${htWin}승 ${htLoss}패
+        </div>
+      `;
+
+      // --- ELO 변화 차트 ---
+      const ctx=document.getElementById('modalEloChart').getContext('2d');
+      if(window.modalChart)window.modalChart.destroy();
+      window.modalChart=new Chart(ctx,{
+        type:'line',
+        data:{
+          labels:target.history.map((_,i)=>i),
+          datasets:[{label:'ELO',data:target.history,borderColor:'#ff6a00',borderWidth:2,fill:false,tension:0.3}]
+        },
+        options:{
+          plugins:{legend:{display:false}},
+          scales:{
+            x:{ticks:{color:'#ccc'}},
+            y:{ticks:{color:'#ccc'}}
+          }
+        }
+      });
+
+      // --- 경기 로그 표시 (ELO 변동 포함) ---
+      document.getElementById('modalMatchHistory').innerHTML =
+        (playerLog.length? playerLog : []).map(row=>{
+          const color = row.isWin ? '#4ade80' : '#f87171';
+          const deltaText = (row.delta>0? `+${row.delta}` : `${row.delta}`);
+          return `<div style="margin:4px 0;">
+            ${row.date} | ${row.map}
+            ${row.opponentText ? ` | vs ${row.opponentText}` : ''}
+            | <b style="color:${color}">${row.isWin ? '승' : '패'}</b>
+            | <span style="color:${color}">${deltaText}</span>
+            <span style="color:#aaa"> (현재 ELO: ${row.eloAfter})</span>
+          </div>`;
+        }).join('') || '경기 기록 없음';
+
+      // --- 팝업 제어 ---
+      const modal=document.getElementById('playerModal');
+      modal.style.display='block';
+      document.getElementById('closeModal').onclick=()=>modal.style.display='none';
+      window.onclick=(e)=>{if(e.target===modal)modal.style.display='none';};
+      window.addEventListener('keydown',(e)=>{if(e.key==='Escape')modal.style.display='none';},{once:true});
+    }
+    catch(err){ console.error('팝업 로직 오류:', err); }
+  }
+})();
+</script>
+
+
+</body>
+</html>
