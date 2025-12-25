@@ -419,24 +419,39 @@ async function start() {
       }).join('');
     }
 
-    function updateRankDateLabel(iso, noGames){
-      if(!$rankDateLabel) return;
-      if(!iso){
-        $rankDateLabel.textContent = '📅 기준 날짜: 전체 (모든 경기 반영)';
-        return;
-      }
-      const parts = String(iso).split('-');
-      if(parts.length===3){
-        const [y,m,d] = parts;
-        const mm = parseInt(m,10);
-        const dd = parseInt(d,10);
-        $rankDateLabel.textContent =
-          `📅 기준 날짜: ${y}년 ${mm}월 ${dd}일 (해당일까지의 경기만 반영)` +
-          (noGames ? ' - 선택한 날짜까지 기록된 경기가 없습니다.' : '');
-      } else {
-        $rankDateLabel.textContent = `📅 기준 날짜: ${iso}`;
-      }
+function updateRankDateLabel(iso, noGames){
+  if(!$rankDateLabel) return;
+
+  // 🔹 인풋 스타일 기본값으로 리셋
+  if ($rankDate) {
+    $rankDate.style.borderColor = '#2c2f3a';
+    $rankDate.style.opacity = '1';
+  }
+
+  if(!iso){
+    $rankDateLabel.textContent = '📅 기준 날짜: 전체 (모든 경기 반영)';
+    return;
+  }
+
+  const parts = String(iso).split('-');
+  if(parts.length===3){
+    const [y,m,d] = parts;
+    const mm = parseInt(m,10);
+    const dd = parseInt(d,10);
+    $rankDateLabel.textContent =
+      `📅 기준 날짜: ${y}년 ${mm}월 ${dd}일 (해당일까지의 경기만 반영)` +
+      (noGames ? ' - 선택한 날짜까지 기록된 경기가 없습니다.' : '');
+
+    // 🔹 선택한 날짜까지 경기가 하나도 없을 때: 인풋을 살짝 회색 처리
+    if (noGames && $rankDate) {
+      $rankDate.style.borderColor = '#555';
+      $rankDate.style.opacity = '0.6';
     }
+  } else {
+    $rankDateLabel.textContent = `📅 기준 날짜: ${iso}`;
+  }
+}
+
 
     function recomputeRankingByDate(isoDate){
       if(!isoDate || !minRankDate){
