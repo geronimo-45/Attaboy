@@ -160,7 +160,7 @@
     <section id="old-records">
       <div class="card">
         <h2 style="margin:6px 0;color:var(--accent)">Old Records</h2>
-        <div class="muted" style="font-size:10px !important">
+        <div class="muted" style="font-size:12px">
           이전 시즌(완료된 시즌)의 최종 ELO 랭킹입니다. 아래에서 시즌을 선택하세요.
         </div>
         <div id="oldSeasonTabs" class="filters" style="margin-top:10px;"></div>
@@ -700,11 +700,11 @@
             + ' ~ ' +
             (season.end   ? season.end   : '종료일 미정');
 
-          contentEl.innerHTML = `
-            <div class="muted" style="margin-bottom:6px;">
+           contentEl.innerHTML = `
+            <div class="muted" style="font-size:12px;margin-bottom:6px;">
               시즌 기간: ${rangeText}
             </div>
-              <div class="old-records-wrap" style="max-height:520px;overflow-y:auto;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:6px;">
+              <div class="old-records-wrap" style="max-height:660px;overflow-y:auto;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:6px;">
                <table class="old-records-table" style="width:100%;border-collapse:collapse;">
                 <thead>
                   <tr>
@@ -996,7 +996,7 @@
             }
             return `<div style="margin:4px 0;color:#ddd">
               ${escapeHtml(it.date)} | ${escapeHtml(it.map)} | <b style="color:${color}">${it.result}</b>${score}
-              <div class="muted" style="font-size:12px;margin-left:10px">
+              "font-size:12px;margin-left:10px">
                 우리팀: [${(it.myTeam||[]).map(escapeHtml).join(', ')}] / 상대팀: [${(it.oppTeam||[]).map(escapeHtml).join(', ')}]
               </div>
             </div>`;
@@ -1015,7 +1015,7 @@
           <div class="card" style="margin-top:12px">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
               <div style="font-weight:800;color:#ffb347">${escapeHtml(p1)} vs ${escapeHtml(p2)}</div>
-              <div class="muted" style="font-size:12px">개인전/팀전 분리 집계</div>
+              "font-size:12px">개인전/팀전 분리 집계</div>
             </div>
 
             <table style="margin-top:10px">
@@ -1071,7 +1071,7 @@
           <div class="card" style="margin-top:12px">
             <div style="display:flex;justify-content:space-between;align-items:center;gap:10px;flex-wrap:wrap">
               <div style="font-weight:800;color:#ffb347">${escapeHtml(p1)} 상대 목록</div>
-              <div class="muted" style="font-size:12px">클릭하면 아래에 전적이 표시됩니다.</div>
+              "font-size:12px">클릭하면 아래에 전적이 표시됩니다.</div>
             </div>
 
             <table style="margin-top:10px">
