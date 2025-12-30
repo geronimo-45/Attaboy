@@ -83,6 +83,13 @@
   font-weight: 700;
 }
 
+    /* Old Records 전용 테이블 폰트 */
+.old-records-table th,
+.old-records-table td {
+  font-size: 13px;
+}
+
+
   </style>
 </head>
 
@@ -153,7 +160,7 @@
     <section id="old-records">
       <div class="card">
         <h2 style="margin:6px 0;color:var(--accent)">Old Records</h2>
-        <div class="muted" style="font-size:14px">
+        <div class="muted" style="font-size:13px">
           이전 시즌(완료된 시즌)의 최종 ELO 랭킹입니다. 아래에서 시즌을 선택하세요.
         </div>
         <div id="oldSeasonTabs" class="filters" style="margin-top:10px;"></div>
@@ -694,11 +701,11 @@
             (season.end   ? season.end   : '종료일 미정');
 
           contentEl.innerHTML = `
-            <div class="muted" style="font-size:14px;margin-bottom:6px;">
+            <div class="muted" style="margin-bottom:6px;">
               시즌 기간: ${rangeText}
             </div>
-            <div style="max-height:380px;overflow-y:auto;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:6px;">
-              <table style="width:100%;border-collapse:collapse;font-size:14px;">
+              <div class="old-records-wrap" style="max-height:520px;overflow-y:auto;border:1px solid rgba(255,255,255,0.08);border-radius:8px;padding:6px;">
+               <table class="old-records-table" style="width:100%;border-collapse:collapse;">
                 <thead>
                   <tr>
                     <th>Rank</th><th>ID</th><th>종족</th><th>티어</th><th>ELO</th><th>승</th><th>패</th><th>승률</th>
