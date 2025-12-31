@@ -1498,7 +1498,7 @@ if(oldContent){
 
         let recentStreakText = '';
         if (proLog.length) {
-          const recent = proLog.slice(-15);
+          const recent = proLog.slice(-10);
           const seq = recent.map(g => g.isWin ? '승' : '패').join(' ');
           recentStreakText = ` <span style="color:#ffb347;font-size:13px;">(최근 ${recent.length}경기: ${seq})</span>`;
         }
