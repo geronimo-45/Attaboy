@@ -1253,6 +1253,28 @@
         await showPlayerModal(playerId);
       });
     }
+    
+// ✅ Old Records 테이블에서도 ID 클릭 시 팝업 열기
+const oldContent = document.getElementById('oldSeasonContent');
+if(oldContent){
+  oldContent.addEventListener('click', async e=>{
+    const cell = e.target.closest('td');
+    if(!cell) return;
+
+    const row = cell.parentElement;
+    const table = row.closest('table');
+    if(!table || !table.classList.contains('old-records-table')) return;
+
+    // Old Records 컬럼 순서: Rank, ID, 종족, 티어, ELO, 승, 패, 승률
+    const colIndex = Array.from(row.children).indexOf(cell);
+    if(colIndex !== 1) return; // ID 컬럼(두 번째 칸)이 아닐 때 무시
+
+    const playerId = (cell.textContent || '').trim();
+    if(!playerId) return;
+
+    await showPlayerModal(playerId);
+  });
+}
 
     async function showPlayerModal(playerId){
       try {
