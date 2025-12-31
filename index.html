@@ -671,25 +671,18 @@
 
             // ✅ 이 시즌에 해당하는 티어 스냅샷 (없으면 빈 객체)
           const seasonTierMap = SEASON_TIER_SNAPSHOT[season.key] || {};
-          
+          const ensureS = (id)=>{
+            if (st.has(id)) return st.get(id);
+          const m = playersMeta.get(id) || {};
+            
     // 스냅샷에 값이 있으면 그 티어를 우선 사용,
     // 없으면 현재 data.json의 tier 사용 (예: 새로 합류한 사람 등)
-    const snapshotTier = seasonTierMap[id];
-    const tier = snapshotTier || m.tier || 'Silver';
-
-    const o = {
-      id,
-      elo: 1000,
-      tier,
-      race: m.race || 'Protoss',
-      win: 0,
-      loss: 0,
-      played: 0
-    };
-    st.set(id,o);
-    return o;
-  };
-
+            const snapshotTier = seasonTierMap[id];
+            const tier = snapshotTier || m.tier || 'Silver';
+            const o = { id, elo:1000, tier, race:m.race || 'Protoss', win:0, loss:0, played:0 };
+            st.set(id, o);
+            return o;
+          };
 
           for(const m of matchesAll){
             if(!isInSeason(m, season)) continue;
