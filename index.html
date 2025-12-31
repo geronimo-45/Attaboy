@@ -358,6 +358,58 @@
       { key:'2026S1', label:'2026 시즌1', start:'2026-01-01', end:'2026-06-30' },
       { key:'2026S2', label:'2026 시즌2', start:'2026-07-01', end:'2026-12-31' },
     ];
+    
+    // 🔹 시즌별 티어 스냅샷 (Old Records 전용)
+    // 2025 시즌이 끝난 시점의 티어를 여기 기록해두면,
+    // 나중에 data.json에서 티어를 바꿔도 Old Records(2025 시즌) 결과는 그대로 유지된다.
+    const SEASON_TIER_SNAPSHOT = {
+      '2025': {
+        'Attaboy': 'Diamond',
+        'Basic': 'Silver',
+        'Chan': 'Silver',
+        'DanielK': 'Silver',
+        'Essence': 'Bronze',
+        'Friend': 'Silver',
+        'Gdragon': 'Diamond',
+        'GgoMajin': 'Silver',
+        'Hani': 'Gold',
+        'Hyunho': 'Silver',
+        'IN': 'Gold',
+        'MGZG': 'Bronze',
+        'Macho': 'Diamond',
+        'MiSTY': 'Silver',
+        'Miny': 'Silver',
+        'Mukddak': 'Silver',
+        'Rocky': 'Silver',
+        'Rupark': 'Diamond',
+        'Shinny': 'Legend',
+        'Skidashi': 'Gold',
+        'Strive': 'Legend',
+        'Templar': 'Gold',
+        'Veeny': 'Gold',
+        'Winter': 'Gold',
+        'Yolo': 'Diamond',
+        'umi': 'Bronze',
+        'Zeze': 'Gold',
+        'coolguy': 'Silver',
+        'dong9': 'Diamond',
+        'dopamine': 'Diamond',
+        'dalsun2': 'Diamond',
+        'qooqoo': 'Silver',
+        'ToTo': 'Diamond',
+        'eun': 'Silver',
+        '5making': 'Gold',
+        'Jangbi': 'Silver',
+        'Pang': 'Gold',
+        'SunnySea': 'Diamond',
+        'JeJu': 'Diamond',
+        'Nangman': 'Gold',
+        'PE': 'Diamond',
+        'JoJo': 'Bronze'
+      }
+      // 나중에 2026 시즌1이 끝난 뒤에 스냅샷을 고정하고 싶으면
+      // 여기에 '2026S1': { ... } 형태로 한 번 더 추가하면 됨.
+    };
 
     // 🔹 현재 시즌 설정 (지금은 2026 시즌1)
     const CURRENT_SEASON_KEY = '2026S1';
@@ -616,12 +668,28 @@
 
         function computeSeasonRanking(season){
           const st = new Map();
-          const ensureS = (id)=>{
-            if(st.has(id)) return st.get(id);
-            const m = playersMeta.get(id) || {};
-            const o = { id, elo:1000, tier:m.tier||'Silver', race:m.race||'Protoss', win:0, loss:0, played:0 };
-            st.set(id,o); return o;
-          };
+
+            // ✅ 이 시즌에 해당하는 티어 스냅샷 (없으면 빈 객체)
+          const seasonTierMap = SEASON_TIER_SNAPSHOT[season.key] || {};
+          
+    // 스냅샷에 값이 있으면 그 티어를 우선 사용,
+    // 없으면 현재 data.json의 tier 사용 (예: 새로 합류한 사람 등)
+    const snapshotTier = seasonTierMap[id];
+    const tier = snapshotTier || m.tier || 'Silver';
+
+    const o = {
+      id,
+      elo: 1000,
+      tier,
+      race: m.race || 'Protoss',
+      win: 0,
+      loss: 0,
+      played: 0
+    };
+    st.set(id,o);
+    return o;
+  };
+
 
           for(const m of matchesAll){
             if(!isInSeason(m, season)) continue;
