@@ -433,7 +433,7 @@
       const base = await safe(path('data.json'));
 
       // 🔹 추가 월 데이터 로드 (필요시 여기만 수정)
-      const months = ['oct','nov','dec']; // data_oct.json, data_nov.json, data_dec.json ...
+      const months = ['oct','nov','dec','jan']; // data_oct.json, data_nov.json, data_dec.json, data_jan.json ...
 
       for (const m of months) {
         try {
@@ -1340,7 +1340,7 @@ if(oldContent){
     async function showPlayerModal(playerId){
       try {
         const base = await safe(path('data.json'));
-        const months = ['oct','nov','dec'];
+        const months = ['oct','nov','dec','jan'];
         for (const m of months) {
           const add = await safe(path(`data_${m}.json`));
           base.matches = (base.matches || []).concat(add.matches || []);
