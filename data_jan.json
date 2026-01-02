@@ -4,7 +4,7 @@
     {
       "date": "2026-01-01",
       "map": "Match",
-      "team1": ["NangMan", "Templar", "Friend", "GgoMajin"],
+      "team1": ["Nangman", "Templar", "Friend", "GgoMajin"],
       "team2": ["Strive", "Hyunho", "Rocky", "JoJo"],
       "winner": ["Strive", "Hyunho", "Rocky", "JoJo"],
       "score": "3:4"
@@ -12,9 +12,9 @@
     {"date":"2026-01-01","map":"투혼","player1":"GgoMajin","player2":"Strive","winner":"GgoMajin","score":"1:0"},
     {"date":"2026-01-01","map":"투혼","player1":"Templar","player2":"Hyunho","winner":"Hyunho","score":"1:1"},
     {"date":"2026-01-01","map":"투혼","player1":"Friend","player2":"Rocky","winner":"Friend","score":"2:1"},
-    {"date":"2026-01-01","map":"투혼","player1":"NangMan","player2":"JoJo","winner":"JoJo","score":"2:2"},
-    {"date":"2026-01-01","map":"3:3생컨","team1":["NangMan","Friend","Templar"],"team2":["Strive","Rocky","Hyunho"],"winner":["Strive","Rocky","Hyunho"],"score":"2:3"},
-    {"date":"2026-01-01","map":"4:4헌터","team1":["NangMan","Templar","Friend","GgoMajin"],"team2":["Strive","Hyunho","Rocky","JoJo"],"winner":["NangMan","Templar","Friend","GgoMajin"],"score":"3:3"},
+    {"date":"2026-01-01","map":"투혼","player1":"Nangman","player2":"JoJo","winner":"JoJo","score":"2:2"},
+    {"date":"2026-01-01","map":"3:3생컨","team1":["Nangman","Friend","Templar"],"team2":["Strive","Rocky","Hyunho"],"winner":["Strive","Rocky","Hyunho"],"score":"2:3"},
+    {"date":"2026-01-01","map":"4:4헌터","team1":["Nangman","Templar","Friend","GgoMajin"],"team2":["Strive","Hyunho","Rocky","JoJo"],"winner":["Nangman","Templar","Friend","GgoMajin"],"score":"3:3"},
     {"date":"2026-01-01","map":"투혼(에결)","player1":"Templar","player2":"Strive","winner":"Strive","score":"3:4"}
   ],
   "generated_at": "2026-01-01T00:00:00Z"
