@@ -63,7 +63,7 @@
     {"date":"2026-01-01","map":"투혼","player1":"Veeny","player2":"dong9","winner":"dong9","score":"2:2"},
     {"date":"2026-01-01","map":"투혼","player1":"Hani","player2":"JeJu","winner":"JeJu","score":"2:3"},
     {"date":"2026-01-01","map":"3:3생컨","team1":["Strive","Pang","Hani"],"team2":["JeJu","dong9","Nangman"],"winner":["Strive","Pang","Hani"],"score":"3:3"},
-    {"date":"2026-01-01","map":"4:4헌터","team1":["Strive","Pang","Miny","Hani"],"team2":["JeJu","dong9","Skidashi","Friend"],"winner":["JeJu","dong9","Skidashi","Friend"],"score":"3:4"},
+    {"date":"2026-01-01","map":"4:4헌터","team1":["Strive","Pang","Miny","Veeny"],"team2":["JeJu","dong9","Skidashi","Friend"],"winner":["JeJu","dong9","Skidashi","Friend"],"score":"3:4"},
 
     {
       "date": "2026-01-01",
