@@ -1429,7 +1429,7 @@ async function showPlayerModal(playerId, seasonKey=CURRENT_SEASON_KEY){
         const proLog = [];
 
         for (const m of base.matches || []) {
-          if (!isInSeason(m, CURRENT_SEASON)) continue;  // 🔹 현재 시즌 아닌 경기 스킵
+          if (!isInSeason(m, season)) continue; // ✅ 선택된 시즌(현재/Old Records 모두) 기준으로 스킵
 
           const isSolo = !!(m.player1 && m.player2);
           const isTeam = Array.isArray(m.team1) && Array.isArray(m.team2);
