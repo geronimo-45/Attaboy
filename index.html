@@ -1372,6 +1372,8 @@ if(oldContent){
 
         const matches=(base.matches||[])
           .filter(m=>m.map!=="Match")
+          .filter(m=>isInSeason(m, CURRENT_SEASON))  // 🔹 현재 시즌 경기만
+
           .slice()
           .sort((a,b)=>String(a.date).localeCompare(String(b.date)));
 
@@ -1443,6 +1445,8 @@ if(oldContent){
         const proLog = [];
 
         for (const m of base.matches || []) {
+          if (!isInSeason(m, CURRENT_SEASON)) continue;  // 🔹 현재 시즌 아닌 경기 스킵
+
           const isSolo = !!(m.player1 && m.player2);
           const isTeam = Array.isArray(m.team1) && Array.isArray(m.team2);
           const isSC = (m.map||'').includes('생컨');
