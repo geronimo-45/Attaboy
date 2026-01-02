@@ -1341,7 +1341,7 @@ if(oldContent){
 async function showPlayerModal(playerId, seasonKey=CURRENT_SEASON_KEY){
   try{
     const base = await safe(path('data.json'));
-    const months = ['oct','nov','dec'];
+    const months = ['oct','nov','dec','jan'];
     for(const m of months){
       const add = await safe(path(`data_${m}.json`));
       base.matches = (base.matches||[]).concat(add.matches||[]);
