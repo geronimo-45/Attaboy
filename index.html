@@ -1454,7 +1454,7 @@ function renderTierSoloStats(matchesAll, playersMeta){
         <button type="button" id="tierSoloPlayerBtn">전체 클랜원</button>
         <div class="dropdown-panel" id="tierSoloPlayerPanel">
           <label class="dropdown-item">
-            <input type="checkbox" value="__ALL__" checked>
+            <input type="checkbox" value="__ALL__">
             <span>전체 선택</span>
           </label>
           <div class="dropdown-scroll">
@@ -1484,14 +1484,20 @@ function renderTierSoloStats(matchesAll, playersMeta){
     panel.classList.toggle('open');
   });
 
-  allChk.addEventListener('change', ()=>{
-    if(allChk.checked){
-      selectedSet.clear();
-      checkboxes.forEach(c=>c.checked=false);
-      updateButtonLabel();
-      draw();
-    }
-  });
+allChk.addEventListener('change', ()=>{
+  if(allChk.checked){
+    // ✅ 전체 인원 선택
+    selectedSet = new Set(allPlayers);
+    checkboxes.forEach(c=>{ c.checked = true; });
+  } else {
+    // ✅ 전체 해제 → 필터 없음(전체 클랜원 기준)
+    selectedSet.clear();
+    checkboxes.forEach(c=>{ c.checked = false; });
+  }
+  updateButtonLabel();
+  draw();
+});
+
 
   checkboxes.forEach(chk=>{
     chk.addEventListener('change', ()=>{
@@ -1499,8 +1505,14 @@ function renderTierSoloStats(matchesAll, playersMeta){
       if(chk.checked) selectedSet.add(id);
       else selectedSet.delete(id);
 
-      if(selectedSet.size>0) allChk.checked=false;
-      else allChk.checked=true;
+if (selectedSet.size === allPlayers.length) {
+  // 전원 선택된 상태
+  allChk.checked = true;
+} else {
+  // 일부만 선택 or 아무도 선택 안 함
+  allChk.checked = false;
+}
+
 
       updateButtonLabel();
       draw();
