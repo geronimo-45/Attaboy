@@ -194,7 +194,7 @@
           <input id="rankDate" type="date" style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
         </div>
         <div class="muted" style="font-size:13px;margin-bottom:2px">
-          2026 시즌1 (1월 1일 ~ 6월 30일) 경기 기준 랭킹입니다. (달력에서 날짜를 선택하면 해당 시즌 내 시점 기준 랭킹을 볼 수 있습니다.)
+          2026시즌 1Q (1월 1일 ~ 3월 31일) 경기 기준 랭킹입니다. (달력에서 날짜를 선택하면 해당 시즌 내 시점 기준 랭킹을 볼 수 있습니다.)
         </div>
         <div class="muted" id="rankDateLabel" style="font-size:12px;margin-bottom:6px"></div>
         <table id="players-table">
@@ -426,11 +426,13 @@
     const $rankDateLabel = document.getElementById('rankDateLabel');
 
     // 🔹 시즌 정의
-    const SEASONS = [
-      { key:'2025',   label:'2025 시즌',   start:null,          end:'2025-12-31' },
-      { key:'2026S1', label:'2026 시즌1', start:'2026-01-01', end:'2026-06-30' },
-      { key:'2026S2', label:'2026 시즌2', start:'2026-07-01', end:'2026-12-31' },
-    ];
+const SEASONS = [
+  { key:'2025',   label:'2025 시즌',     start:null,          end:'2025-12-31' },
+  { key:'2026Q1', label:'2026 시즌 1Q', start:'2026-01-01', end:'2026-03-31' },
+  { key:'2026Q2', label:'2026 시즌 2Q', start:'2026-04-01', end:'2026-06-30' },
+  { key:'2026Q3', label:'2026 시즌 3Q', start:'2026-07-01', end:'2026-09-30' },
+  { key:'2026Q4', label:'2026 시즌 4Q', start:'2026-10-01', end:'2026-12-31' },
+];
     
     // 🔹 시즌별 티어 스냅샷 (Old Records 전용)
     // 2025 시즌이 끝난 시점의 티어를 여기 기록해두면,
@@ -481,11 +483,11 @@
         'JoJo': 'Bronze'
       }
       // 나중에 2026 시즌1이 끝난 뒤에 스냅샷을 고정하고 싶으면
-      // 여기에 '2026S1': { ... } 형태로 한 번 더 추가하면 됨.
+      // 여기에 '2026Q1': { ... } 형태로 한 번 더 추가하면 됨.
     };
 
-    // 🔹 현재 시즌 설정 (지금은 2026 시즌1)
-    const CURRENT_SEASON_KEY = '2026S1';
+    // 🔹 현재 시즌 설정 (지금은 2026 시즌 1Q)
+    const CURRENT_SEASON_KEY = '2026Q1';
     const CURRENT_SEASON = SEASONS.find(s => s.key === CURRENT_SEASON_KEY) || SEASONS[0];
 
     // 🔹 탈퇴/숨김 ID
@@ -545,7 +547,7 @@
 
       const matchesAll = (data.matches||[]).slice().sort((a,b)=>String(a.date).localeCompare(String(b.date)));
 
-      // ✅ 현재 시즌(2026 시즌1) 랭킹 계산에 사용할 경기만 추출
+      // ✅ 현재 시즌(2026 시즌1Q) 랭킹 계산에 사용할 경기만 추출
       const matchesForRanking = matchesAll.filter(m => isInSeason(m, CURRENT_SEASON));
 
       // --- 랭킹용 날짜 범위 계산 (달력 min/max 세팅용) ---
