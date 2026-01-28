@@ -427,7 +427,7 @@
 
     // 🔹 시즌 정의
 const SEASONS = [
-  { key:'2025',   label:'2025 시즌',     start:null,          end:'2025-12-31' },
+  { key:'2025',   label:'2025 시즌',     start:2025-09-01,  end:'2025-12-31' },
   { key:'2026Q1', label:'2026 시즌 1Q', start:'2026-01-01', end:'2026-03-31' },
   { key:'2026Q2', label:'2026 시즌 2Q', start:'2026-04-01', end:'2026-06-30' },
   { key:'2026Q3', label:'2026 시즌 3Q', start:'2026-07-01', end:'2026-09-30' },
@@ -624,7 +624,7 @@ const SEASONS = [
       function updateRankDateLabel(iso, noGames){
         if(!$rankDateLabel) return;
         if(!iso){
-          $rankDateLabel.textContent = '📅 기준 날짜: 시즌 전체 (2026-01-01 ~ 2026-06-30 기준)';
+          $rankDateLabel.textContent = '📅 기준 날짜: 시즌 전체 (2026-01-01 ~ 2026-03-31 기준)';
           return;
         }
         const parts = String(iso).split('-');
