@@ -433,12 +433,15 @@
     const $rankDate = document.getElementById('rankDate');
     const $rankDateLabel = document.getElementById('rankDateLabel');
     const $mode = document.getElementById('statMode');
-    let mode = 'all';
+      let mode = ($mode && $mode.value) ? $mode.value : 'all';
 
-    $mode.addEventListener('change', ()=>{
-      mode = $mode.value;
-      applyFilters();
-});
+      if($mode){
+         $mode.addEventListener('change', ()=>{
+           mode = $mode.value;
+           applyFilters();
+  });
+}
+
 
     // 🔹 시즌 정의
 const SEASONS = [
