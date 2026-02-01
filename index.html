@@ -550,12 +550,15 @@ renderAll(base);
         if(stat.has(id)) return stat.get(id);
         const m=playersMeta.get(id)||{};
         const o={ id, elo:1000, tier:m.tier||'Silver', race:m.race||'Protoss', win:0, loss:0, played:0,
-                  // ✅ 전적 표시용(드롭박스 모드별)
+                 // ✅ 모드용 W/L
                  soloW:0, soloL:0,
                  teamW:0, teamL:0,
-                 proW:0,  proL:0};
-        stat.set(id,o); return o;
-      };
+                 proW:0,  proL:0,
+
+                 // ✅ 모드용 ELO (개인/팀)
+                 soloElo:1000,
+                 teamElo:1000
+                };
 
       const calc = (A,B,res,isTeam)=>{
         const K = isTeam? 8 : 12;
@@ -582,55 +585,30 @@ renderAll(base);
       }
 
 // 🔹 현재 시즌 기준 ELO 누적
-for (const m of matchesForRanking) {
-  if (!m || !m.map) continue;
+for(const m of matchesForRanking){
+  if(!m||!m.map||m.map==='Match') continue;
+  const d=toMMDD(m.date);
 
-  const d = toMMDD(m.date);
-
-  // ✅ 프로리그 (ELO 미반영): proW/proL만 누적하고 끝
-  if (m.map === 'Match' && Array.isArray(m.team1) && Array.isArray(m.team2)) {
-    const winners = Array.isArray(m.winner) ? m.winner : [];
-    const win1 = winners.some(x => m.team1.includes(x)); // true면 team1 승
-
-    m.team1.forEach(id => {
-      const p = ensure(id); win1 ? p.proW++ : p.proL++;
-    });
-    m.team2.forEach(id => {
-      const p = ensure(id); win1 ? p.proL++ : p.proW++;
-    });
-
-    // ⚠️ 프로리그는 ELO/eloByDate 변화 없음 (원하는 동작)
-    continue;
+  if(m.player1&&m.player2){
+    const p1=ensure(m.player1),p2=ensure(m.player2);
+    if(m.winner===m.player1){ calc(p1,p2,1,false); p1.win++;p2.loss++; p1.soloW++;p2.soloL++; }
+    else if(m.winner===m.player2){ calc(p1,p2,0,false); p2.win++;p1.loss++; p2.soloW++;p1.soloL++; }
+    p1.played++;p2.played++; (eloByDate[p1.id]??={})[d]=Math.round(p1.elo); (eloByDate[p2.id]??={})[d]=Math.round(p2.elo);
   }
 
-        if(m.player1 && m.player2){
-          const p1=ensure(m.player1), p2=ensure(m.player2);
-          if(m.winner===m.player1){ calc(p1,p2,1,false); p1.win++; p2.loss++; }
-          else if(m.winner===m.player2){ calc(p1,p2,0,false); p2.win++; p1.loss++; }
-          p1.played++; p2.played++;
-          (eloByDate[p1.id]??={})[d]=Math.round(p1.elo);
-          (eloByDate[p2.id]??={})[d]=Math.round(p2.elo);
-        }
+  if(Array.isArray(m.team1)&&Array.isArray(m.team2)){
+    const T1=m.team1.map(ensure),T2=m.team2.map(ensure);
+    const winners=Array.isArray(m.winner)?m.winner:[]; const win1=winners.some(x=>m.team1.includes(x))?1:0;
+    T1.forEach(p=>{ win1?p.teamW++:p.teamL++; }); T2.forEach(p=>{ win1?p.teamL++:p.teamW++; });
 
-        if(Array.isArray(m.team1) && Array.isArray(m.team2)){
-          const T1=m.team1.map(ensure), T2=m.team2.map(ensure);
-          const winners = Array.isArray(m.winner)? m.winner : [];
-          const win1 = winners.some(x=>m.team1.includes(x)) ? 1 : 0;
-          
-          // ✅ 모드별 전적 누적 (팀원 전원)
-          T1.forEach(p => { win1 ? p.teamW++ : p.teamL++; });
-          T2.forEach(p => { win1 ? p.teamL++ : p.teamW++; });
+    const avg1=T1.reduce((a,b)=>a+b.elo,0)/T1.length, avg2=T2.reduce((a,b)=>a+b.elo,0)/T2.length;
+    const dA={elo:avg1,tier:'Silver'}, dB={elo:avg2,tier:'Silver'}; calc(dA,dB,win1,true);
+    const diffA=dA.elo-avg1, diffB=dB.elo-avg2;
+    T1.forEach(p=>{ p.elo+=diffA; p.played++; win1?p.win++:p.loss++; (eloByDate[p.id]??={})[d]=Math.round(p.elo); });
+    T2.forEach(p=>{ p.elo+=diffB; p.played++; !win1?p.win++:p.loss++; (eloByDate[p.id]??={})[d]=Math.round(p.elo); });
+  }
+}
 
-          const avg1=T1.reduce((a,b)=>a+b.elo,0)/T1.length;
-          const avg2=T2.reduce((a,b)=>a+b.elo,0)/T2.length;
-          const dA={elo:avg1,tier:'Silver'}, dB={elo:avg2,tier:'Silver'};
-          calc(dA,dB,win1,true);
-          const diffA=dA.elo-avg1, diffB=dB.elo-avg2;
-
-          T1.forEach(p=>{ p.elo+=diffA; p.played++; win1?p.win++:p.loss++; (eloByDate[p.id]??={})[d]=Math.round(p.elo); });
-          T2.forEach(p=>{ p.elo+=diffB; p.played++; !win1?p.win++:p.loss++; (eloByDate[p.id]??={})[d]=Math.round(p.elo); });
-        }
-      }
 
       // --- 랭킹 표시 (ELO 내림차순) + 필터 ---
       const tbody = document.querySelector('#players-table tbody');
@@ -755,53 +733,40 @@ function applyFilters(){
           return o;
         };
 
-for (const m of matchesForRanking) {
-  if (!m || !m.map) continue;
+for(const m of matchesForRanking){
+  if(!m||!m.map) continue;
+  const dIso=String(m.date); if(dIso>isoDate) break;
 
-  const dIso = String(m.date);
-  if (dIso > isoDate) break;
-
-  // ✅ 1) 프로리그(Match)는 여기서 먼저 누적하고, ELO 계산은 건드리지 말고 continue
-  if (m.map === 'Match' && Array.isArray(m.team1) && Array.isArray(m.team2)) {
-    const winners = Array.isArray(m.winner) ? m.winner : [];
-    const win1 = winners.some(x => m.team1.includes(x));
-
-    m.team1.forEach(id => {
-      const p = ensureSnap(id);
-      win1 ? p.proW++ : p.proL++;
-    });
-    m.team2.forEach(id => {
-      const p = ensureSnap(id);
-      win1 ? p.proL++ : p.proW++;
-    });
-    continue; // ✅ ELO/solo/team 계산로직으로 절대 내려가지 않음
+  if(mode==='pro'){
+    if(m.map!=='Match'||!Array.isArray(m.team1)||!Array.isArray(m.team2)) continue;
+    const winners=Array.isArray(m.winner)?m.winner:[]; const win1=winners.some(x=>m.team1.includes(x));
+    m.team1.forEach(id=>{ const p=ensureSnap(id); win1?p.proW++:p.proL++; });
+    m.team2.forEach(id=>{ const p=ensureSnap(id); win1?p.proL++:p.proW++; });
+    continue;
   }
 
-  // ✅ 2) 나머지(개인전/팀전/ELO)는 Match가 아닌 것만 처리
-  if (m.map === 'Match') continue;
-          
-          if(m.player1 && m.player2){
-            const p1=ensureSnap(m.player1), p2=ensureSnap(m.player2);
-            if(m.winner===m.player1){ calc(p1,p2,1,false); p1.win++; p2.loss++; p1.soloW++; p2.soloL++; }
-            else if(m.winner===m.player2){ calc(p1,p2,0,false); p2.win++; p1.loss++; p2.soloW++; p1.soloL++; }
-            p1.played++; p2.played++;
-          }
+  if(m.map==='Match') continue;
 
-          if(Array.isArray(m.team1) && Array.isArray(m.team2)){
-            const T1=m.team1.map(ensureSnap), T2=m.team2.map(ensureSnap);
-            const winners = Array.isArray(m.winner)? m.winner : [];
-            const win1 = winners.some(x=>m.team1.includes(x)) ? 1 : 0;
+  if((mode==='all'||mode==='solo') && m.player1&&m.player2){
+    const p1=ensureSnap(m.player1),p2=ensureSnap(m.player2);
+    if(m.winner===m.player1){ calc(p1,p2,1,false); p1.win++;p2.loss++; p1.soloW++;p2.soloL++; }
+    else if(m.winner===m.player2){ calc(p1,p2,0,false); p2.win++;p1.loss++; p2.soloW++;p1.soloL++; }
+    p1.played++;p2.played++;
+  }
 
-            const avg1=T1.reduce((a,b)=>a+b.elo,0)/T1.length;
-            const avg2=T2.reduce((a,b)=>a+b.elo,0)/T2.length;
-            const dA={elo:avg1,tier:'Silver'}, dB={elo:avg2,tier:'Silver'};
-            calc(dA,dB,win1,true);
-            const diffA=dA.elo-avg1, diffB=dB.elo-avg2;
+  if((mode==='all'||mode==='team') && Array.isArray(m.team1)&&Array.isArray(m.team2)){
+    const T1=m.team1.map(ensureSnap),T2=m.team2.map(ensureSnap);
+    const winners=Array.isArray(m.winner)?m.winner:[]; const win1=winners.some(x=>m.team1.includes(x))?1:0;
+    T1.forEach(p=>{ win1?p.teamW++:p.teamL++; }); T2.forEach(p=>{ win1?p.teamL++:p.teamW++; });
 
-            T1.forEach(p=>{ p.elo+=diffA; p.played++; win1? (p.win++,p.teamW++) : (p.loss++,p.teamL++); });
-            T2.forEach(p=>{ p.elo+=diffB; p.played++; !win1? (p.win++,p.teamW++) : (p.loss++,p.teamL++); });
-          }
-        }
+    const avg1=T1.reduce((a,b)=>a+b.elo,0)/T1.length, avg2=T2.reduce((a,b)=>a+b.elo,0)/T2.length;
+    const dA={elo:avg1,tier:'Silver'}, dB={elo:avg2,tier:'Silver'}; calc(dA,dB,win1,true);
+    const diffA=dA.elo-avg1, diffB=dB.elo-avg2;
+    T1.forEach(p=>{ p.elo+=diffA; p.played++; win1?p.win++:p.loss++; });
+    T2.forEach(p=>{ p.elo+=diffB; p.played++; !win1?p.win++:p.loss++; });
+  }
+}
+
 
         activeRows = [...snapStat.values()]
           .filter(p=>!HIDE_IDS.has(p.id))
