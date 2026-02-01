@@ -1659,7 +1659,7 @@ if (selectedSet.size === allPlayers.length) {
               React.createElement(YAxis,{stroke:"#aaa",domain:[800,1200],tick:{fontSize:12}}),
               React.createElement(Tooltip,{formatter:v=>Math.round(v),contentStyle:{backgroundColor:"#1a1a22",border:"1px solid #333"}}),
               React.createElement(Legend,null),
-              ...sel.map((id,i)=>React.createElement(Line,{
+              sel.map((id,i)=>React.createElement(Line,{
                 key:id, type:"monotone", dataKey:id, name:id,
                 stroke:palette[i%palette.length], dot:false, strokeWidth:2, isAnimationActive:false
               }))
