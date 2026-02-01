@@ -1675,6 +1675,7 @@ if (selectedSet.size === allPlayers.length) {
     }
 
     // --- 팝업 로직: 플레이어 클릭 시 상세 ---
+   {
     const tbody = document.querySelector('#players-table tbody');
     if(tbody){
       tbody.addEventListener('click', async e=>{
@@ -1685,6 +1686,7 @@ if (selectedSet.size === allPlayers.length) {
         await showPlayerModal(playerId, CURRENT_SEASON_KEY);
       });
     }
+   }
     
 // ✅ Old Records 테이블에서도 ID 클릭 시 팝업 열기
 const oldContent = document.getElementById('oldSeasonContent');
