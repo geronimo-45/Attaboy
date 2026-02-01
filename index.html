@@ -432,14 +432,7 @@
     const $tier   = document.getElementById('tierFilter');
     const $rankDate = document.getElementById('rankDate');
     const $rankDateLabel = document.getElementById('rankDateLabel');
-    const $mode = document.getElementById('statMode');
-      let mode = ($mode && $mode.value) ? $mode.value : 'all';
 
-      if($mode){
-         $mode.addEventListener('change', ()=>{
-           mode = $mode.value;
-           applyFilters();
-  });
 }
 
 
@@ -1053,6 +1046,15 @@ function applyFilters(){
       // --- 상대 전적 조회 ---
       renderHeadToHead(data, matchesAll, playersMeta);
       renderTierSoloStats(matchesAll, playersMeta);
+
+          const $mode = document.getElementById('statMode');
+      let mode = ($mode && $mode.value) ? $mode.value : 'all';
+
+      if($mode){
+         $mode.addEventListener('change', ()=>{
+           mode = $mode.value;
+           applyFilters();
+  });
     }
 
     // ===== 상대 전적 조회 구현 =====
