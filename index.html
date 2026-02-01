@@ -616,6 +616,16 @@ renderAll(base);
 
       let activeRows = baseRows;
 
+      const $mode = document.getElementById('statMode');
+let mode = ($mode && $mode.value) ? $mode.value : 'all';
+
+if($mode){
+  $mode.addEventListener('change', ()=>{
+    mode = $mode.value;
+    applyFilters();
+  });
+}
+
 function applyFilters(){
   const q = ($search.value||'').trim().toLowerCase();
   const r = $race.value||'';
@@ -1043,15 +1053,6 @@ function applyFilters(){
       // --- 상대 전적 조회 ---
       renderHeadToHead(data, matchesAll, playersMeta);
       renderTierSoloStats(matchesAll, playersMeta);
-
-          const $mode = document.getElementById('statMode');
-      let mode = ($mode && $mode.value) ? $mode.value : 'all';
-
-      if($mode){
-         $mode.addEventListener('change', ()=>{
-           mode = $mode.value;
-           applyFilters();
-  });
     }
 
     // ===== 상대 전적 조회 구현 =====
@@ -1913,7 +1914,7 @@ async function showPlayerModal(playerId, seasonKey=CURRENT_SEASON_KEY){
       }
       catch(err){ console.error('팝업 로직 오류:', err); }
     }
-  )();
+    })();
   </script>
 
 </body>
