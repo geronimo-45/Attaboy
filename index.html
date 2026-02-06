@@ -193,14 +193,6 @@
           <!-- 📅 랭킹 기준 날짜 선택 (캘린더) -->
           <input id="rankDate" type="date" style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
         </div>
-        <select id="statMode"
-         style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
-         <option value="all">전체 (ELO)</option>
-         <option value="solo">개인전</option>
-         <option value="team">팀전</option>
-         <option value="pro">프로리그</option>
-        </select>
-
         <div id="currentSeasonDesc"
          class="muted"
          style="font-size:13px;margin-bottom:2px"></div>
@@ -516,7 +508,7 @@ const SEASONS = [
       const base = await safe(path('data.json'));
 
       // 🔹 추가 월 데이터 로드 (필요시 여기만 수정)
-      const months = ['oct','nov','dec','jan']; // data_oct.json, data_nov.json, data_dec.json, data_jan.json ...
+      const months = ['oct','nov','dec','jan','feb']; // data_oct.json, data_nov.json, data_dec.json, data_jan.json ...
 
       for (const m of months) {
         try {
@@ -531,7 +523,7 @@ const SEASONS = [
 
 renderAll(base);
 }
-
+// 여기 삽입
 {
   const cs = SEASONS.find(s=>s.key===CURRENT_SEASON_KEY);
   if (cs) {
@@ -549,16 +541,9 @@ renderAll(base);
       const ensure = (id)=>{
         if(stat.has(id)) return stat.get(id);
         const m=playersMeta.get(id)||{};
-        const o={ id, elo:1000, tier:m.tier||'Silver', race:m.race||'Protoss', win:0, loss:0, played:0,
-                 // ✅ 모드용 W/L
-                 soloW:0, soloL:0,
-                 teamW:0, teamL:0,
-                 proW:0,  proL:0,
-
-                 // ✅ 모드용 ELO (개인/팀)
-                 soloElo:1000,
-                 teamElo:1000
-                };
+        const o={ id, elo:1000, tier:m.tier||'Silver', race:m.race||'Protoss', win:0, loss:0, played:0 };
+        stat.set(id,o); return o;
+      };
 
       const calc = (A,B,res,isTeam)=>{
         const K = isTeam? 8 : 12;
@@ -577,38 +562,42 @@ renderAll(base);
       // --- 랭킹용 날짜 범위 계산 (달력 min/max 세팅용) ---
       let minRankDate = null;
       let maxRankDate = null;
-      for(const m of matchesForRanking) {
+      for (const m of matchesForRanking) {
         if (!m || !m.date || !m.map || m.map === 'Match') continue;
         const d = String(m.date);
         if (!minRankDate || d < minRankDate) minRankDate = d;
         if (!maxRankDate || d > maxRankDate) maxRankDate = d;
       }
 
-// 🔹 현재 시즌 기준 ELO 누적
-for(const m of matchesForRanking){
-  if(!m||!m.map||m.map==='Match') continue;
-  const d=toMMDD(m.date);
+      // 🔹 현재 시즌 기준 ELO 누적
+      for(const m of matchesForRanking){
+        if(!m.map || m.map==='Match') continue;
+        const d = toMMDD(m.date);
 
-  if(m.player1&&m.player2){
-    const p1=ensure(m.player1),p2=ensure(m.player2);
-    if(m.winner===m.player1){ calc(p1,p2,1,false); p1.win++;p2.loss++; p1.soloW++;p2.soloL++; }
-    else if(m.winner===m.player2){ calc(p1,p2,0,false); p2.win++;p1.loss++; p2.soloW++;p1.soloL++; }
-    p1.played++;p2.played++; (eloByDate[p1.id]??={})[d]=Math.round(p1.elo); (eloByDate[p2.id]??={})[d]=Math.round(p2.elo);
-  }
+        if(m.player1 && m.player2){
+          const p1=ensure(m.player1), p2=ensure(m.player2);
+          if(m.winner===m.player1){ calc(p1,p2,1,false); p1.win++; p2.loss++; }
+          else if(m.winner===m.player2){ calc(p1,p2,0,false); p2.win++; p1.loss++; }
+          p1.played++; p2.played++;
+          (eloByDate[p1.id]??={})[d]=Math.round(p1.elo);
+          (eloByDate[p2.id]??={})[d]=Math.round(p2.elo);
+        }
 
-  if(Array.isArray(m.team1)&&Array.isArray(m.team2)){
-    const T1=m.team1.map(ensure),T2=m.team2.map(ensure);
-    const winners=Array.isArray(m.winner)?m.winner:[]; const win1=winners.some(x=>m.team1.includes(x))?1:0;
-    T1.forEach(p=>{ win1?p.teamW++:p.teamL++; }); T2.forEach(p=>{ win1?p.teamL++:p.teamW++; });
+        if(Array.isArray(m.team1) && Array.isArray(m.team2)){
+          const T1=m.team1.map(ensure), T2=m.team2.map(ensure);
+          const winners = Array.isArray(m.winner)? m.winner : [];
+          const win1 = winners.some(x=>m.team1.includes(x)) ? 1 : 0;
 
-    const avg1=T1.reduce((a,b)=>a+b.elo,0)/T1.length, avg2=T2.reduce((a,b)=>a+b.elo,0)/T2.length;
-    const dA={elo:avg1,tier:'Silver'}, dB={elo:avg2,tier:'Silver'}; calc(dA,dB,win1,true);
-    const diffA=dA.elo-avg1, diffB=dB.elo-avg2;
-    T1.forEach(p=>{ p.elo+=diffA; p.played++; win1?p.win++:p.loss++; (eloByDate[p.id]??={})[d]=Math.round(p.elo); });
-    T2.forEach(p=>{ p.elo+=diffB; p.played++; !win1?p.win++:p.loss++; (eloByDate[p.id]??={})[d]=Math.round(p.elo); });
-  }
-}
+          const avg1=T1.reduce((a,b)=>a+b.elo,0)/T1.length;
+          const avg2=T2.reduce((a,b)=>a+b.elo,0)/T2.length;
+          const dA={elo:avg1,tier:'Silver'}, dB={elo:avg2,tier:'Silver'};
+          calc(dA,dB,win1,true);
+          const diffA=dA.elo-avg1, diffB=dB.elo-avg2;
 
+          T1.forEach(p=>{ p.elo+=diffA; p.played++; win1?p.win++:p.loss++; (eloByDate[p.id]??={})[d]=Math.round(p.elo); });
+          T2.forEach(p=>{ p.elo+=diffB; p.played++; !win1?p.win++:p.loss++; (eloByDate[p.id]??={})[d]=Math.round(p.elo); });
+        }
+      }
 
       // --- 랭킹 표시 (ELO 내림차순) + 필터 ---
       const tbody = document.querySelector('#players-table tbody');
@@ -619,68 +608,27 @@ for(const m of matchesForRanking){
 
       let activeRows = baseRows;
 
-      const $mode = document.getElementById('statMode');
-let mode = ($mode && $mode.value) ? $mode.value : 'all';
+      function applyFilters(){
+        const q = ($search.value||'').trim().toLowerCase();
+        const r = $race.value||'';
+        const t = $tier.value||'';
 
-if($mode){
-  $mode.addEventListener('change', ()=>{
-    mode = $mode.value;
-    applyFilters();
-  });
-}
+        const filtered = activeRows.filter(p=>{
+          if(q && !p.id.toLowerCase().includes(q)) return false;
+          if(r && p.race!==r) return false;
+          if(t && p.tier!==t) return false;
+          return true;
+        });
 
-function applyFilters(){
-  const q = ($search.value||'').trim().toLowerCase();
-  const r = $race.value||'';
-  const t = $tier.value||'';
-
-  const filtered = activeRows.filter(p=>{
-    if(q && !p.id.toLowerCase().includes(q)) return false;
-    if(r && p.race!==r) return false;
-    if(t && p.tier!==t) return false;
-    return true;
-  });
-
-  // ✅ 모드별 정렬/표시용 복사본
-  let viewRows = filtered.slice();
-
-  // ✅ 프로리그 모드: (승-패 마진) 기준 정렬
-  if(mode === 'pro'){
-    viewRows.sort((a,b)=>{
-      const ma = (a.proW||0) - (a.proL||0);
-      const mb = (b.proW||0) - (b.proL||0);
-      if(mb !== ma) return mb - ma;                 // 1) 마진 큰 순
-      const wa = (a.proW||0), wb = (b.proW||0);
-      if(wb !== wa) return wb - wa;                 // 2) 승 많은 순
-      const ga = wa + (a.proL||0), gb = wb + (b.proL||0);
-      if(gb !== ga) return gb - ga;                 // 3) 경기수 많은 순
-      return String(a.id).localeCompare(String(b.id)); // 4) ID
-    });
-  }
-
-  tbody.innerHTML = viewRows.map((p,i)=>{
-    // ✅ 모드별 W/L 선택
-    let w=0,l=0;
-    if(mode==='solo'){ w=p.soloW||0; l=p.soloL||0; }
-    else if(mode==='team'){ w=p.teamW||0; l=p.teamL||0; }
-    else if(mode==='pro'){ w=p.proW||0; l=p.proL||0; }
-    else { w=p.win||0; l=p.loss||0; } // all
-
-    const games = w+l;
-    const wr = games ? ((w/games)*100).toFixed(1) : '0.0';
-
-    // ✅ 프로리그 모드: ELO는 '-' 표기
-    const eloText = (mode==='pro') ? '-' : Math.round(p.elo);
-
-    return `<tr>
-      <td>${i+1}</td><td>${p.id}</td><td>${p.race}</td>
-      <td class="tier-${p.tier}">${p.tier}</td>
-      <td>${eloText}</td><td>${w}</td><td>${l}</td><td>${wr}%</td>
-    </tr>`;
-  }).join('');
-}
-
-
+        tbody.innerHTML = filtered.map((p,i)=>{
+          const wr = p.played? ((p.win/p.played)*100).toFixed(1) : '0.0';
+          return `<tr>
+            <td>${i+1}</td><td>${p.id}</td><td>${p.race}</td>
+            <td class="tier-${p.tier}">${p.tier}</td>
+            <td>${Math.round(p.elo)}</td><td>${p.win}</td><td>${p.loss}</td><td>${wr}%</td>
+          </tr>`;
+        }).join('');
+      }
 
       function updateRankDateLabel(iso, noGames){
         if(!$rankDateLabel) return;
@@ -720,53 +668,38 @@ function applyFilters(){
         const ensureSnap = (id)=>{
           if(snapStat.has(id)) return snapStat.get(id);
           const m = playersMeta.get(id) || {};
-          const o = { id, elo:1000, tier:m.tier||'Silver', race:m.race||'Protoss',
-                    // 랭킹용 (ELO)
-                     win:0, loss:0, played:0,
-
-                    // 전적 표시용
-                     soloW:0, soloL:0,
-                     teamW:0, teamL:0,
-                     proW:0,  proL:0
-                     };
+          const o = { id, elo:1000, tier:m.tier||'Silver', race:m.race||'Protoss', win:0, loss:0, played:0 };
           snapStat.set(id,o);
           return o;
         };
 
-for(const m of matchesForRanking){
-  if(!m||!m.map) continue;
-  const dIso=String(m.date); if(dIso>isoDate) break;
+        for(const m of matchesForRanking){
+          if(!m || !m.map || m.map==='Match') continue;
+          const dIso = String(m.date);
+          if(dIso > isoDate) break;
 
-  if(mode==='pro'){
-    if(m.map!=='Match'||!Array.isArray(m.team1)||!Array.isArray(m.team2)) continue;
-    const winners=Array.isArray(m.winner)?m.winner:[]; const win1=winners.some(x=>m.team1.includes(x));
-    m.team1.forEach(id=>{ const p=ensureSnap(id); win1?p.proW++:p.proL++; });
-    m.team2.forEach(id=>{ const p=ensureSnap(id); win1?p.proL++:p.proW++; });
-    continue;
-  }
+          if(m.player1 && m.player2){
+            const p1=ensureSnap(m.player1), p2=ensureSnap(m.player2);
+            if(m.winner===m.player1){ calc(p1,p2,1,false); p1.win++; p2.loss++; }
+            else if(m.winner===m.player2){ calc(p1,p2,0,false); p2.win++; p1.loss++; }
+            p1.played++; p2.played++;
+          }
 
-  if(m.map==='Match') continue;
+          if(Array.isArray(m.team1) && Array.isArray(m.team2)){
+            const T1=m.team1.map(ensureSnap), T2=m.team2.map(ensureSnap);
+            const winners = Array.isArray(m.winner)? m.winner : [];
+            const win1 = winners.some(x=>m.team1.includes(x)) ? 1 : 0;
 
-  if((mode==='all'||mode==='solo') && m.player1&&m.player2){
-    const p1=ensureSnap(m.player1),p2=ensureSnap(m.player2);
-    if(m.winner===m.player1){ calc(p1,p2,1,false); p1.win++;p2.loss++; p1.soloW++;p2.soloL++; }
-    else if(m.winner===m.player2){ calc(p1,p2,0,false); p2.win++;p1.loss++; p2.soloW++;p1.soloL++; }
-    p1.played++;p2.played++;
-  }
+            const avg1=T1.reduce((a,b)=>a+b.elo,0)/T1.length;
+            const avg2=T2.reduce((a,b)=>a+b.elo,0)/T2.length;
+            const dA={elo:avg1,tier:'Silver'}, dB={elo:avg2,tier:'Silver'};
+            calc(dA,dB,win1,true);
+            const diffA=dA.elo-avg1, diffB=dB.elo-avg2;
 
-  if((mode==='all'||mode==='team') && Array.isArray(m.team1)&&Array.isArray(m.team2)){
-    const T1=m.team1.map(ensureSnap),T2=m.team2.map(ensureSnap);
-    const winners=Array.isArray(m.winner)?m.winner:[]; const win1=winners.some(x=>m.team1.includes(x))?1:0;
-    T1.forEach(p=>{ win1?p.teamW++:p.teamL++; }); T2.forEach(p=>{ win1?p.teamL++:p.teamW++; });
-
-    const avg1=T1.reduce((a,b)=>a+b.elo,0)/T1.length, avg2=T2.reduce((a,b)=>a+b.elo,0)/T2.length;
-    const dA={elo:avg1,tier:'Silver'}, dB={elo:avg2,tier:'Silver'}; calc(dA,dB,win1,true);
-    const diffA=dA.elo-avg1, diffB=dB.elo-avg2;
-    T1.forEach(p=>{ p.elo+=diffA; p.played++; win1?p.win++:p.loss++; });
-    T2.forEach(p=>{ p.elo+=diffB; p.played++; !win1?p.win++:p.loss++; });
-  }
-}
-
+            T1.forEach(p=>{ p.elo+=diffA; p.played++; win1?p.win++:p.loss++; });
+            T2.forEach(p=>{ p.elo+=diffB; p.played++; !win1?p.win++:p.loss++; });
+          }
+        }
 
         activeRows = [...snapStat.values()]
           .filter(p=>!HIDE_IDS.has(p.id))
@@ -837,7 +770,7 @@ for(const m of matchesForRanking){
 
           for(const m of matchesAll){
             if(!isInSeason(m, season)) continue;
-            if(!m || !m.map) continue;
+            if(!m || !m.map || m.map==='Match') continue;
 
             if(m.player1 && m.player2){
               const p1=ensureS(m.player1), p2=ensureS(m.player2);
@@ -1654,7 +1587,7 @@ if (selectedSet.size === allPlayers.length) {
               React.createElement(YAxis,{stroke:"#aaa",domain:[800,1200],tick:{fontSize:12}}),
               React.createElement(Tooltip,{formatter:v=>Math.round(v),contentStyle:{backgroundColor:"#1a1a22",border:"1px solid #333"}}),
               React.createElement(Legend,null),
-              sel.map((id,i)=>React.createElement(Line,{
+              ...sel.map((id,i)=>React.createElement(Line,{
                 key:id, type:"monotone", dataKey:id, name:id,
                 stroke:palette[i%palette.length], dot:false, strokeWidth:2, isAnimationActive:false
               }))
@@ -1670,7 +1603,6 @@ if (selectedSet.size === allPlayers.length) {
     }
 
     // --- 팝업 로직: 플레이어 클릭 시 상세 ---
-   {
     const tbody = document.querySelector('#players-table tbody');
     if(tbody){
       tbody.addEventListener('click', async e=>{
@@ -1681,7 +1613,6 @@ if (selectedSet.size === allPlayers.length) {
         await showPlayerModal(playerId, CURRENT_SEASON_KEY);
       });
     }
-   }
     
 // ✅ Old Records 테이블에서도 ID 클릭 시 팝업 열기
 const oldContent = document.getElementById('oldSeasonContent');
@@ -1709,7 +1640,7 @@ if(oldContent){
 async function showPlayerModal(playerId, seasonKey=CURRENT_SEASON_KEY){
   try{
     const base = await safe(path('data.json'));
-    const months = ['oct','nov','dec','jan'];
+    const months = ['oct','nov','dec','jan','feb'];
     for(const m of months){
       const add = await safe(path(`data_${m}.json`));
       base.matches = (base.matches||[]).concat(add.matches||[]);
@@ -1908,7 +1839,7 @@ async function showPlayerModal(playerId, seasonKey=CURRENT_SEASON_KEY){
       }
       catch(err){ console.error('팝업 로직 오류:', err); }
     }
-    })();
+  })();
   </script>
 
 </body>
