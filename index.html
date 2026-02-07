@@ -196,7 +196,7 @@
             <option value="solo">개인전</option>
             <option value="team">팀전</option>
           </select>
-          <!-- 📅 랭킹 기준 날짜 선택 (캘린더) --> (캘린더) -->
+          <!-- 📅 랭킹 기준 날짜 선택 --> (캘린더) -->
           <input id="rankDate" type="date" style="padding:10px;border-radius:8px;border:1px solid #2c2f3a;background:#101018;color:#fff;">
         </div>
         <div id="currentSeasonDesc"
@@ -644,21 +644,25 @@ renderAll(base);
         let rows = [...stat.values()].filter(p => !HIDE_IDS.has(p.id));
 
         if(mode==='pro'){
-          // 프로리그는 ELO가 없으므로 승률/승수 기반 정렬
+          // 프로리그: 득실(승-패) 우선 정렬 → 승수 → 패수(적을수록) → ID
           rows.sort((a,b)=>{
-            const aw = a.played? a.win/a.played : 0;
-            const bw = b.played? b.win/b.played : 0;
-            if(bw!==aw) return bw-aw;
-            if(b.win!==a.win) return b.win-a.win;
-            return a.loss-b.loss;
+            const ad = (a.win||0) - (a.loss||0);
+            const bd = (b.win||0) - (b.loss||0);
+            if(bd!==ad) return bd-ad;
+            if((b.win||0)!==(a.win||0)) return (b.win||0)-(a.win||0);
+            if((a.loss||0)!==(b.loss||0)) return (a.loss||0)-(b.loss||0);
+            return String(a.id).localeCompare(String(b.id));
           });
         } else {
           rows.sort((a,b)=>b.elo-a.elo);
         }
 
-        // 프로리그는 ELO 표시를 '-'로
+        // 프로리그는 ELO 대신 득실(승-패)을 표시용으로 보관
         if(mode==='pro'){
-          rows.forEach(p=>{ p.elo = null; });
+          rows.forEach(p=>{
+            p.diff = (p.win||0) - (p.loss||0);
+            p.elo = null;
+          });
         }
 
         return { rows, noGames: usedGames===0 };
@@ -679,6 +683,7 @@ renderAll(base);
       }
 
       function applyFilters(){
+        const modeNow = ($rankMode && $rankMode.value) ? $rankMode.value : currentMode;
         const q = ($search.value||'').trim().toLowerCase();
         const r = $race.value||'';
         const t = $tier.value||'';
@@ -693,7 +698,13 @@ renderAll(base);
         tbody.innerHTML = filtered.map((p,i)=>{
           const played = p.played||0;
           const wr = played? ((p.win/played)*100).toFixed(1) : '0.0';
-          const eloText = (p.elo===null || typeof p.elo==='undefined') ? '-' : Math.round(p.elo);
+          let eloText;
+          if(modeNow==='pro'){
+            const d = (typeof p.diff==='number') ? p.diff : ((p.win||0)-(p.loss||0));
+            eloText = (d>0? `+${d}` : String(d));
+          } else {
+            eloText = (p.elo===null || typeof p.elo==='undefined') ? '-' : Math.round(p.elo);
+          }
           return `<tr>
             <td>${i+1}</td><td>${p.id}</td><td>${p.race}</td>
             <td class="tier-${p.tier}">${p.tier}</td>
